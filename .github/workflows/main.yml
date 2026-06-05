@@ -1,0 +1,11 @@
+name: Hello Word with workflow
+on: 
+  workflow_dispatch: 
+
+jobs:
+  Tarea1: 
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Say Hello
+      run: echo "Hello World"
