@@ -3,7 +3,7 @@ on:
   push: 
 
 jobs:
-  Tarea11: 
+  Tarea1: 
     runs-on: ubuntu-24.04
 
     steps:
