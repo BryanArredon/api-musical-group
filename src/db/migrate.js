@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
+//
 async function runMigration() {
     console.log("Iniciando migración de base de datos a Supabase...");
     const sqlPath = path.join(__dirname, "activos.sql");
