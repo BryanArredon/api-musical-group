@@ -6,16 +6,17 @@ const PORT = process.env.PORT || 3000;
 async function startServer() {
     try {
         await pool.query("SELECT NOW()");
-
-        console.log("Conexion a Base de datos exitosa");
-
-        app.listen(PORT, () => {
-            console.log(`Servidor corriendo en puerto ${PORT}`);
-        });
+        console.log("✓ Conexión a Base de datos exitosa");
     } catch (error) {
-        console.error("Error conexion a base de datos");
-        console.error(error);
+        console.warn("⚠ Advertencia: Error conexión a base de datos");
+        console.warn("La API iniciará pero algunas operaciones no estarán disponibles");
     }
+
+    app.listen(PORT, () => {
+        console.log(`✓ Servidor corriendo en puerto ${PORT}`);
+        console.log(`✓ Documentación Swagger disponible en http://localhost:${PORT}/api-docs`);
+        console.log(`✓ Especificación OpenAPI en http://localhost:${PORT}/api-docs.json`);
+    });
 }
 
 startServer();
