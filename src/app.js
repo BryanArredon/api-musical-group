@@ -1,8 +1,10 @@
 import express from "express";
+import swaggerUi from "swagger-ui-express";
 import activosRoutes from "./routes/activosRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import solicitudesRoutes from "./routes/solicitudesRoutes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
+import { specs } from "./config/swagger.js";
 
 const app = express();
 
@@ -23,6 +25,36 @@ app.use((req, res, next) => {
         return res.sendStatus(200);
     }
     next();
+});
+
+// Swagger UI Documentation
+app.use(
+    "/api-docs",
+    swaggerUi.serve,
+    swaggerUi.setup(specs, {
+        customCss: ".swagger-ui .topbar { background-color: #1a1a1a; }",
+        customSiteTitle: "API Musical Group - Documentación",
+        swaggerOptions: {
+            persistAuthorization: true,
+            displayOperationId: false,
+            filter: true,
+            showRequestHeaders: true
+        }
+    })
+);
+
+// JSON Swagger Spec endpoint
+app.get("/api-docs.json", (req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.send(specs);
+});
+
+// Health check endpoint
+app.get("/api/health", (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: "API Musical Group está funcionando correctamente."
+    });
 });
 
 // Main routes for API
