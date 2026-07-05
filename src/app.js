@@ -1,6 +1,7 @@
 import express from "express";
 import activosRoutes from "./routes/activosRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import solicitudesRoutes from "./routes/solicitudesRoutes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
 const app = express();
@@ -27,6 +28,7 @@ app.use((req, res, next) => {
 // Main routes for API
 app.use("/api/auth", authRoutes);
 app.use("/api/activos", activosRoutes);
+app.use("/api/solicitudes", solicitudesRoutes);
 
 // Global Error Handler (must be registered last)
 app.use(errorHandler);

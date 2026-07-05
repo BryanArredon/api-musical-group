@@ -1,3 +1,6 @@
+CREATE SCHEMA IF NOT EXISTS musical_group;
+SET search_path TO musical_group, extensions, public;
+
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE IF NOT EXISTS activos (
