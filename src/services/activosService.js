@@ -14,7 +14,7 @@ export async function createAsset(nombre, categoria, estado) {
         
         const queryText = `
             INSERT INTO activos (nombre_cifrado, categoria, estado)
-            VALUES (pgp_sym_encrypt($1, $2), $3, $4)
+            VALUES (pgp_sym_encrypt($1::text, $2::text), $3, $4)
             RETURNING id, categoria, estado, created_at, updated_at
         `;
         const res = await client.query(queryText, [nombre, ENCRYPTION_KEY, categoria, estado]);
@@ -46,7 +46,7 @@ export async function getAllAssets() {
         await client.query("BEGIN");
         
         const queryText = `
-            SELECT id, pgp_sym_decrypt(nombre_cifrado, $1) as nombre, categoria, estado, created_at, updated_at
+            SELECT id, pgp_sym_decrypt(nombre_cifrado, $1::text) as nombre, categoria, estado, created_at, updated_at
             FROM activos
         `;
         const res = await client.query(queryText, [ENCRYPTION_KEY]);
@@ -70,7 +70,7 @@ export async function getAssetById(id) {
         await client.query("BEGIN");
         
         const queryText = `
-            SELECT id, pgp_sym_decrypt(nombre_cifrado, $1) as nombre, categoria, estado, created_at, updated_at
+            SELECT id, pgp_sym_decrypt(nombre_cifrado, $1::text) as nombre, categoria, estado, created_at, updated_at
             FROM activos
             WHERE id = $2
         `;
@@ -103,7 +103,7 @@ export async function updateAsset(id, nombre, categoria, estado) {
 
         const queryText = `
             UPDATE activos
-            SET nombre_cifrado = pgp_sym_encrypt($1, $2), categoria = $3, estado = $4, updated_at = CURRENT_TIMESTAMP
+            SET nombre_cifrado = pgp_sym_encrypt($1::text, $2::text), categoria = $3, estado = $4, updated_at = CURRENT_TIMESTAMP
             WHERE id = $5
             RETURNING id, categoria, estado, created_at, updated_at
         `;
