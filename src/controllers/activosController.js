@@ -1,5 +1,6 @@
 import * as activosService from "../services/activosService.js";
 import { auditLog } from "../utils/logger.js";
+import { validateTextField } from "../utils/securityValidation.js";
 
 /**
  * Controller for managing assets
@@ -17,11 +18,38 @@ export async function createAsset(req, res, next) {
         });
     }
 
+    const validatedNombre = validateTextField(nombre, "nombre", 100);
+    if (!validatedNombre.isValid) {
+        return res.status(400).json({
+            success: false,
+            error: "Bad Request",
+            message: validatedNombre.message
+        });
+    }
+
+    const validatedCategoria = validateTextField(categoria, "categoria", 50);
+    if (!validatedCategoria.isValid) {
+        return res.status(400).json({
+            success: false,
+            error: "Bad Request",
+            message: validatedCategoria.message
+        });
+    }
+
+    const validatedEstado = validateTextField(estado, "estado", 20);
+    if (!validatedEstado.isValid) {
+        return res.status(400).json({
+            success: false,
+            error: "Bad Request",
+            message: validatedEstado.message
+        });
+    }
+
     try {
-        const asset = await activosService.createAsset(nombre, categoria, estado);
-        
+        const asset = await activosService.createAsset(validatedNombre.value, validatedCategoria.value, validatedEstado.value);
+
         // Audit log with anonymization built-in
-        auditLog(userId, "CREATE_ASSET", { assetId: asset.id, nombre, categoria, estado });
+        auditLog(userId, "CREATE_ASSET", { assetId: asset.id, nombre: validatedNombre.value, categoria: validatedCategoria.value, estado: validatedEstado.value });
 
         return res.status(201).json({
             success: true,
@@ -82,8 +110,35 @@ export async function updateAsset(req, res, next) {
         });
     }
 
+    const validatedNombre = validateTextField(nombre, "nombre", 100);
+    if (!validatedNombre.isValid) {
+        return res.status(400).json({
+            success: false,
+            error: "Bad Request",
+            message: validatedNombre.message
+        });
+    }
+
+    const validatedCategoria = validateTextField(categoria, "categoria", 50);
+    if (!validatedCategoria.isValid) {
+        return res.status(400).json({
+            success: false,
+            error: "Bad Request",
+            message: validatedCategoria.message
+        });
+    }
+
+    const validatedEstado = validateTextField(estado, "estado", 20);
+    if (!validatedEstado.isValid) {
+        return res.status(400).json({
+            success: false,
+            error: "Bad Request",
+            message: validatedEstado.message
+        });
+    }
+
     try {
-        const asset = await activosService.updateAsset(id, nombre, categoria, estado);
+        const asset = await activosService.updateAsset(id, validatedNombre.value, validatedCategoria.value, validatedEstado.value);
         if (!asset) {
             return res.status(404).json({
                 success: false,
@@ -92,7 +147,7 @@ export async function updateAsset(req, res, next) {
             });
         }
 
-        auditLog(userId, "UPDATE_ASSET", { assetId: id, nombre, categoria, estado });
+        auditLog(userId, "UPDATE_ASSET", { assetId: id, nombre: validatedNombre.value, categoria: validatedCategoria.value, estado: validatedEstado.value });
 
         return res.status(200).json({
             success: true,
