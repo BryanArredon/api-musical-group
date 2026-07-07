@@ -9,6 +9,7 @@ async function startServer() {
         console.log("✓ Conexión a Base de datos exitosa");
     } catch (error) {
         console.warn("⚠ Advertencia: Error conexión a base de datos");
+        console.warn("Detalle del error:", error.message);
         console.warn("La API iniciará pero algunas operaciones no estarán disponibles");
     }
 

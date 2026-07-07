@@ -1,5 +1,6 @@
 import * as solicitudesService from "../services/solicitudesService.js";
 import { auditLog } from "../utils/logger.js";
+import { validateTextField } from "../utils/securityValidation.js";
 
 export async function createSolicitud(req, res, next) {
     const { activoId, comentarios } = req.body;
@@ -13,8 +14,21 @@ export async function createSolicitud(req, res, next) {
         });
     }
 
+    let safeComentarios = comentarios;
+    if (comentarios !== undefined && comentarios !== null && comentarios !== "") {
+        const validatedComentarios = validateTextField(comentarios, "comentarios", 500);
+        if (!validatedComentarios.isValid) {
+            return res.status(400).json({
+                success: false,
+                error: "Bad Request",
+                message: validatedComentarios.message
+            });
+        }
+        safeComentarios = validatedComentarios.value;
+    }
+
     try {
-        const solicitud = await solicitudesService.createSolicitud(email, activoId, comentarios);
+        const solicitud = await solicitudesService.createSolicitud(email, activoId, safeComentarios);
         auditLog(email, "CREATE_SOLICITUD", { solicitudId: solicitud.id, activoId });
         return res.status(201).json({
             success: true,
@@ -31,6 +45,34 @@ export async function getPendingSolicitudes(req, res, next) {
     try {
         const solicitudes = await solicitudesService.getPendingSolicitudes();
         auditLog(email, "GET_PENDING_SOLICITUDES", { count: solicitudes.length });
+        return res.status(200).json({
+            success: true,
+            data: solicitudes
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function getAllSolicitudes(req, res, next) {
+    const email = req.user?.sub || req.user?.correo || "UNKNOWN_USER";
+    try {
+        const solicitudes = await solicitudesService.getAllSolicitudes();
+        auditLog(email, "GET_ALL_SOLICITUDES", { count: solicitudes.length });
+        return res.status(200).json({
+            success: true,
+            data: solicitudes
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function getUserSolicitudes(req, res, next) {
+    const email = req.user?.sub || req.user?.correo || "UNKNOWN_USER";
+    try {
+        const solicitudes = await solicitudesService.getUserSolicitudes(email);
+        auditLog(email, "GET_USER_SOLICITUDES", { count: solicitudes.length });
         return res.status(200).json({
             success: true,
             data: solicitudes

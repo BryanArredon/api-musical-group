@@ -48,6 +48,37 @@ export async function getPendingSolicitudes() {
 }
 
 /**
+ * Returns all requests.
+ */
+export async function getAllSolicitudes() {
+    const queryText = `
+        SELECT s.id, s.colaborador_email, s.activo_id, s.estado, s.comentarios, s.created_at,
+               a.categoria, a.estado as activo_estado
+        FROM solicitudes s
+        JOIN activos a ON s.activo_id = a.id
+        ORDER BY s.created_at DESC
+    `;
+    const res = await pool.query(queryText);
+    return res.rows;
+}
+
+/**
+ * Returns all requests for a specific user.
+ */
+export async function getUserSolicitudes(email) {
+    const queryText = `
+        SELECT s.id, s.colaborador_email, s.activo_id, s.estado, s.comentarios, s.created_at,
+               a.categoria, a.estado as activo_estado
+        FROM solicitudes s
+        JOIN activos a ON s.activo_id = a.id
+        WHERE s.colaborador_email = $1
+        ORDER BY s.created_at DESC
+    `;
+    const res = await pool.query(queryText, [email]);
+    return res.rows;
+}
+
+/**
  * Atomically approves or rejects a request.
  * Automatically handles transaction rollback in case of validation or database failure.
  */
