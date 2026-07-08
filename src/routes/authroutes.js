@@ -66,5 +66,6 @@ const router = Router();
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post("/login", authController.login);
+router.post("/register", authController.register);
 
 export default router;
