@@ -7,6 +7,7 @@ import { errorHandler } from "./middlewares/errorHandler.js";
 import { specs } from "./config/swagger.js";
 
 const app = express();
+app.enable("trust proxy");
 
 // Middleware to parse incoming JSON payloads
 app.use(express.json());
@@ -20,6 +21,11 @@ app.use((req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     res.setHeader("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none';");
+
+    const isSecure = req.secure || req.headers["x-forwarded-proto"] === "https";
+    if (isSecure) {
+        res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+    }
 
     if (req.method === "OPTIONS") {
         return res.sendStatus(200);
