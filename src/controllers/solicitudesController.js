@@ -1,6 +1,7 @@
 import * as solicitudesService from "../services/solicitudesService.js";
 import { auditLog } from "../utils/logger.js";
-import { validateTextField } from "../utils/securityValidation.js";
+import { validateTextField, validateId } from "../utils/securityValidation.js";
+import { sanitizeSolicitud, sanitizeList } from "../utils/responseSanitizer.js";
 
 export async function createSolicitud(req, res, next) {
     const { activoId, comentarios } = req.body;
@@ -47,7 +48,7 @@ export async function getPendingSolicitudes(req, res, next) {
         auditLog(email, "GET_PENDING_SOLICITUDES", { count: solicitudes.length });
         return res.status(200).json({
             success: true,
-            data: solicitudes
+            data: sanitizeList(solicitudes, sanitizeSolicitud, true) // [Mass Exposure] Admin view
         });
     } catch (error) {
         next(error);
@@ -61,7 +62,7 @@ export async function getAllSolicitudes(req, res, next) {
         auditLog(email, "GET_ALL_SOLICITUDES", { count: solicitudes.length });
         return res.status(200).json({
             success: true,
-            data: solicitudes
+            data: sanitizeList(solicitudes, sanitizeSolicitud, true) // [Mass Exposure] Admin view
         });
     } catch (error) {
         next(error);
@@ -75,7 +76,7 @@ export async function getUserSolicitudes(req, res, next) {
         auditLog(email, "GET_USER_SOLICITUDES", { count: solicitudes.length });
         return res.status(200).json({
             success: true,
-            data: solicitudes
+            data: sanitizeList(solicitudes, sanitizeSolicitud, false) // [Mass Exposure] Collaborator view
         });
     } catch (error) {
         next(error);
@@ -86,9 +87,15 @@ export async function aprobarSolicitud(req, res, next) {
     const { id } = req.params;
     const adminEmail = req.user?.sub || req.user?.correo || "UNKNOWN_USER";
 
+    // [BOLA] Validate ID is a positive integer
+    const validId = validateId(id);
+    if (!validId.isValid) {
+        return res.status(400).json({ success: false, error: "Bad Request", message: validId.message });
+    }
+
     try {
-        await solicitudesService.procesarSolicitud(id, adminEmail, "Aprobada");
-        auditLog(adminEmail, "APPROVE_SOLICITUD", { solicitudId: id });
+        await solicitudesService.procesarSolicitud(validId.value, adminEmail, "Aprobada");
+        auditLog(adminEmail, "APPROVE_SOLICITUD", { solicitudId: validId.value });
         return res.status(200).json({
             success: true,
             message: "Solicitud aprobada con éxito. El estado del activo ha cambiado automáticamente."
@@ -102,9 +109,15 @@ export async function rejectSolicitud(req, res, next) {
     const { id } = req.params;
     const adminEmail = req.user?.sub || req.user?.correo || "UNKNOWN_USER";
 
+    // [BOLA] Validate ID is a positive integer
+    const validId = validateId(id);
+    if (!validId.isValid) {
+        return res.status(400).json({ success: false, error: "Bad Request", message: validId.message });
+    }
+
     try {
-        await solicitudesService.procesarSolicitud(id, adminEmail, "Rechazada");
-        auditLog(adminEmail, "REJECT_SOLICITUD", { solicitudId: id });
+        await solicitudesService.procesarSolicitud(validId.value, adminEmail, "Rechazada");
+        auditLog(adminEmail, "REJECT_SOLICITUD", { solicitudId: validId.value });
         return res.status(200).json({
             success: true,
             message: "Solicitud rechazada con éxito. El activo permanece sin cambios."

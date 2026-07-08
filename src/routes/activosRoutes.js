@@ -102,7 +102,7 @@ const router = Router();
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post("/", requireAdmin, activosController.createAsset);
-router.get("/", requireAuth, activosController.getAllAssets);
+router.get("/", requireAdmin, activosController.getAllAssets); // [BOLA] Admin-only: prevents data fishing
 
 /**
  * @swagger
