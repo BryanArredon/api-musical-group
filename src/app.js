@@ -17,7 +17,7 @@ import helmet from "helmet";
  * se pueda escalar horizontalmente sin conflictos de sincronización de sesiones (Escalabilidad de arquitectura).
  */
 const app = express();
-app.enable("trust proxy");
+app.set("trust proxy", 1); // Confiar solo en el primer proxy (seguro para rate limiting)
 
 // Security headers (LGPDPPSO & OWASP standards)
 app.use(helmet({
