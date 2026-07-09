@@ -246,4 +246,54 @@ router.post("/:id/aprobar", requireAdmin, solicitudesController.aprobarSolicitud
  */
 router.post("/:id/rechazar", requireAdmin, solicitudesController.rejectSolicitud);
 
+/**
+ * @swagger
+ * /api/solicitudes/{id}/devolver:
+ *   post:
+ *     summary: Registrar devolución de activo
+ *     description: |
+ *       Registra la devolución de un activo prestado y su condición física.
+ *       El estado del activo cambia a "Disponible".
+ *       Solo disponible para administradores.
+ *     tags:
+ *       - Solicitudes
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         description: ID de la solicitud aprobada a devolver
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               condicionesFisicas:
+ *                 type: string
+ *                 example: "Se devuelve en perfectas condiciones, sin rayones."
+ *     responses:
+ *       200:
+ *         description: Devolución registrada exitosamente
+ */
+router.post("/:id/devolver", requireAdmin, solicitudesController.devolverActivo);
+
+/**
+ * @swagger
+ * /api/solicitudes/historial/devoluciones:
+ *   get:
+ *     summary: Obtener historial de devoluciones
+ *     description: Obtiene el registro completo de todos los activos devueltos y sus condiciones físicas.
+ *     tags:
+ *       - Solicitudes
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Historial obtenido exitosamente
+ */
+router.get("/historial/devoluciones", requireAdmin, solicitudesController.obtenerHistorialDevoluciones);
+
 export default router;
