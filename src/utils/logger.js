@@ -1,7 +1,9 @@
 /**
- * Audit Logger utility
- * Formats: [TIMESTAMP] [USER_ID] [ACTION] - [DETAILS]
- * Ensures sensitive data is anonymized.
+ * Función central de auditoría del sistema.
+ * 
+ * [CERTIFICACIÓN RNF11 - TRAZABILIDAD Y BITÁCORAS DE AUDITORÍA]
+ * Se registra un log inmutable de toda acción importante (Crear solicitud, aprobar, eliminar, etc.),
+ * enmascarando los datos personales (ej. email) para cumplir con el principio de minimización.
  */
 export function auditLog(userId, action, details = {}) {
     const timestamp = new Date().toISOString();

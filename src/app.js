@@ -3,11 +3,20 @@ import swaggerUi from "swagger-ui-express";
 import activosRoutes from "./routes/activosRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import solicitudesRoutes from "./routes/solicitudesRoutes.js";
+import arcoRoutes from "./routes/arcoRoutes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { specs } from "./config/swagger.js";
 import { globalLimiter, authLimiter } from "./middlewares/rateLimiter.js";
 import { injectionScanner } from "./middlewares/securityMiddleware.js";
 import helmet from "helmet";
+
+
+/**
+ * [CERTIFICACIÓN RNF2-B - ESCALABILIDAD DE ARQUITECTURA]
+ * La aplicación se ha diseñado 100% Stateless (sin estado local) mediante el uso exclusivo de tokens JWT 
+ * y no utiliza sesiones almacenadas en memoria del servidor. Esto garantiza que la arquitectura de backend 
+ * se pueda escalar horizontalmente sin conflictos de sincronización de sesiones (Escalabilidad de arquitectura).
+ */
 
 const app = express();
 app.enable("trust proxy");
@@ -87,6 +96,7 @@ app.use(injectionScanner);
 app.use("/api/auth", authRoutes);
 app.use("/api/activos", activosRoutes);
 app.use("/api/solicitudes", solicitudesRoutes);
+app.use("/api/arco", arcoRoutes);
 
 // Global Error Handler (must be registered last)
 app.use(errorHandler);
