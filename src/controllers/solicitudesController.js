@@ -126,3 +126,57 @@ export async function rejectSolicitud(req, res, next) {
         next(error);
     }
 }
+
+export async function devolverActivo(req, res, next) {
+    const { id } = req.params;
+    const { condicionesFisicas } = req.body;
+    const adminEmail = req.user?.sub || req.user?.correo || "UNKNOWN_USER";
+
+    // [BOLA] Validate ID is a positive integer
+    const validId = validateId(id);
+    if (!validId.isValid) {
+        return res.status(400).json({ success: false, error: "Bad Request", message: validId.message });
+    }
+
+    if (!condicionesFisicas) {
+        return res.status(400).json({
+            success: false,
+            error: "Bad Request",
+            message: "El campo condicionesFisicas es obligatorio para registrar la devolución."
+        });
+    }
+
+    const validatedCondiciones = validateTextField(condicionesFisicas, "condicionesFisicas", 1000);
+    if (!validatedCondiciones.isValid) {
+        return res.status(400).json({
+            success: false,
+            error: "Bad Request",
+            message: validatedCondiciones.message
+        });
+    }
+
+    try {
+        const result = await solicitudesService.registrarDevolucion(validId.value, adminEmail, validatedCondiciones.value);
+        auditLog(adminEmail, "RETURN_ACTIVO", { solicitudId: validId.value });
+        return res.status(200).json({
+            success: true,
+            message: result.message
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export async function obtenerHistorialDevoluciones(req, res, next) {
+    const adminEmail = req.user?.sub || req.user?.correo || "UNKNOWN_USER";
+    try {
+        const historial = await solicitudesService.getHistorialDevoluciones();
+        auditLog(adminEmail, "GET_HISTORIAL_DEVOLUCIONES", { count: historial.length });
+        return res.status(200).json({
+            success: true,
+            data: historial
+        });
+    } catch (error) {
+        next(error);
+    }
+}

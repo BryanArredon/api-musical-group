@@ -8,22 +8,30 @@ import { errorHandler } from "./middlewares/errorHandler.js";
 import { specs } from "./config/swagger.js";
 import { globalLimiter, authLimiter } from "./middlewares/rateLimiter.js";
 import { injectionScanner } from "./middlewares/securityMiddleware.js";
+import helmet from "helmet";
 
 const app = express();
 app.enable("trust proxy");
 
+// Security headers (LGPDPPSO & OWASP standards)
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            frameAncestors: ["'none'"] // Previene Clickjacking
+        }
+    },
+    frameguard: { action: 'deny' } // X-Frame-Options: DENY
+}));
+
 // Middleware to parse incoming JSON payloads
 app.use(express.json());
 
-// Security headers and CORS middleware (LGPDPPSO & OWASP standards)
+// CORS middleware
 app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    res.setHeader("X-Frame-Options", "DENY");
-    res.setHeader("X-Content-Type-Options", "nosniff");
-    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-    res.setHeader("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none';");
 
     const isSecure = req.secure || req.headers["x-forwarded-proto"] === "https";
     if (isSecure) {
