@@ -19,7 +19,7 @@ export async function createAsset(req, res, next) {
         });
     }
 
-    const validatedNombre = validateTextField(nombre, "nombre", 20);
+    const validatedNombre = validateTextField(nombre, "nombre", 100);
     if (!validatedNombre.isValid) {
         return res.status(400).json({
             success: false,
@@ -124,7 +124,7 @@ export async function updateAsset(req, res, next) {
         });
     }
 
-    const validatedNombre = validateTextField(nombre, "nombre", 20);
+    const validatedNombre = validateTextField(nombre, "nombre", 100);
     if (!validatedNombre.isValid) {
         return res.status(400).json({
             success: false,
