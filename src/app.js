@@ -3,6 +3,7 @@ import swaggerUi from "swagger-ui-express";
 import activosRoutes from "./routes/activosRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import solicitudesRoutes from "./routes/solicitudesRoutes.js";
+import arcoRoutes from "./routes/arcoRoutes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { specs } from "./config/swagger.js";
 import { globalLimiter, authLimiter } from "./middlewares/rateLimiter.js";
@@ -79,6 +80,7 @@ app.use(injectionScanner);
 app.use("/api/auth", authRoutes);
 app.use("/api/activos", activosRoutes);
 app.use("/api/solicitudes", solicitudesRoutes);
+app.use("/api/arco", arcoRoutes);
 
 // Global Error Handler (must be registered last)
 app.use(errorHandler);
