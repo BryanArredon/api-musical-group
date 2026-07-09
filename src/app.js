@@ -10,12 +10,14 @@ import { globalLimiter, authLimiter } from "./middlewares/rateLimiter.js";
 import { injectionScanner } from "./middlewares/securityMiddleware.js";
 import helmet from "helmet";
 
+
 /**
  * [CERTIFICACIÓN RNF2-B - ESCALABILIDAD DE ARQUITECTURA]
  * La aplicación se ha diseñado 100% Stateless (sin estado local) mediante el uso exclusivo de tokens JWT 
  * y no utiliza sesiones almacenadas en memoria del servidor. Esto garantiza que la arquitectura de backend 
  * se pueda escalar horizontalmente sin conflictos de sincronización de sesiones (Escalabilidad de arquitectura).
  */
+
 const app = express();
 app.enable("trust proxy");
 
