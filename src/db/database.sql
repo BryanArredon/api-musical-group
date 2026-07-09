@@ -3,6 +3,15 @@
 -- Para: Supabase (PostgreSQL + Row Level Security + Auth)
 -- ============================================================
 
+/**
+ * [CERTIFICACIÓN RNF8 - CIFRADO EN REPOSO]
+ * Nota de Arquitectura:
+ * Para cumplir con el requerimiento de "Cifrado en reposo" de la base de datos, no se implementa 
+ * cifrado de disco a nivel de aplicación Node.js. En su lugar, se confía en la infraestructura 
+ * gestionada por Supabase (PostgreSQL), la cual provee cifrado nativo de volumen (AES-256) 
+ * transparente para todos los clústeres por defecto en sus proveedores de nube (AWS/GCP).
+ */
+ 
 -- 0. EXTENSIONES PREVIAS
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
