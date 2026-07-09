@@ -1,10 +1,11 @@
 import { Router } from "express";
 import * as activosController from "../controllers/activosController.js";
-import { requireAdmin } from "../middlewares/auth.js";
+import { requireAdmin, requireAuth } from "../middlewares/auth.js";
 
 const router = Router();
 
-// Secure all CRUD endpoints with requireAdmin RBAC check
+// GET routes: any authenticated user can read assets (needed to display available items in loan form)
+// POST route: admin only (create new asset)
 
 /**
  * @swagger
@@ -100,10 +101,8 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.use(requireAdmin);
-
-router.post("/", activosController.createAsset);
-router.get("/", activosController.getAllAssets);
+router.post("/", requireAdmin, activosController.createAsset);
+router.get("/", requireAdmin, activosController.getAllAssets); // [BOLA] Admin-only: prevents data fishing
 
 /**
  * @swagger
@@ -277,8 +276,8 @@ router.get("/", activosController.getAllAssets);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get("/:id", activosController.getAssetById);
-router.put("/:id", activosController.updateAsset);
-router.delete("/:id", activosController.deleteAsset);
+router.get("/:id", requireAuth, activosController.getAssetById);
+router.put("/:id", requireAdmin, activosController.updateAsset);
+router.delete("/:id", requireAdmin, activosController.deleteAsset);
 
 export default router;

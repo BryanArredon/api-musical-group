@@ -104,6 +104,38 @@ router.get("/pendientes", requireAdmin, solicitudesController.getPendingSolicitu
 
 /**
  * @swagger
+ * /api/solicitudes/todas:
+ *   get:
+ *     summary: Obtener todas las solicitudes
+ *     description: Obtiene todas las solicitudes (pendientes, aprobadas, rechazadas). Solo para administradores.
+ *     tags:
+ *       - Solicitudes
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de todas las solicitudes
+ */
+router.get("/todas", requireAdmin, solicitudesController.getAllSolicitudes);
+
+/**
+ * @swagger
+ * /api/solicitudes/mis-solicitudes:
+ *   get:
+ *     summary: Obtener solicitudes del usuario actual
+ *     description: Obtiene todas las solicitudes realizadas por el usuario autenticado.
+ *     tags:
+ *       - Solicitudes
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista de solicitudes del usuario
+ */
+router.get("/mis-solicitudes", requireAuth, solicitudesController.getUserSolicitudes);
+
+/**
+ * @swagger
  * /api/solicitudes/{id}/aprobar:
  *   post:
  *     summary: Aprobar solicitud

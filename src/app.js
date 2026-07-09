@@ -5,8 +5,11 @@ import authRoutes from "./routes/authRoutes.js";
 import solicitudesRoutes from "./routes/solicitudesRoutes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { specs } from "./config/swagger.js";
+import { globalLimiter, authLimiter } from "./middlewares/rateLimiter.js";
+import { injectionScanner } from "./middlewares/securityMiddleware.js";
 
 const app = express();
+app.enable("trust proxy");
 
 // Middleware to parse incoming JSON payloads
 app.use(express.json());
@@ -20,6 +23,11 @@ app.use((req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     res.setHeader("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none';");
+
+    const isSecure = req.secure || req.headers["x-forwarded-proto"] === "https";
+    if (isSecure) {
+        res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+    }
 
     if (req.method === "OPTIONS") {
         return res.sendStatus(200);
@@ -57,7 +65,17 @@ app.get("/api/health", (req, res) => {
     });
 });
 
-// Main routes for API
+// ─── Security: Rate Limiting ─────────────────────────────────────────────────
+// Global limiter on all API routes (200 req / 15 min per IP)
+app.use("/api", globalLimiter);
+// Strict limiter only on authentication routes (10 attempts / 15 min per IP)
+app.use("/api/auth", authLimiter);
+
+// ─── Security: Injection Scanner ─────────────────────────────────────────────
+// Scans all request bodies for SQLi, NoSQLi, XSS patterns
+app.use(injectionScanner);
+
+// ─── Main API Routes ─────────────────────────────────────────────────────────
 app.use("/api/auth", authRoutes);
 app.use("/api/activos", activosRoutes);
 app.use("/api/solicitudes", solicitudesRoutes);
