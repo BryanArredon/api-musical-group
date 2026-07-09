@@ -1,7 +1,11 @@
 import { pool } from "../config/database.js";
 
 /**
- * Creates a new request for an asset in state 'Pendiente'.
+ * Registra una nueva solicitud de préstamo.
+ * 
+ * [CERTIFICACIÓN RNF3-B - CONFIRMACIÓN Y RESPALDO DE DATOS]
+ * Aquí se cumple con la confirmación atómica de datos (ACID) mediante el uso de "BEGIN", "COMMIT" y "ROLLBACK".
+ * Se garantiza que el inventario no se asigne de manera corrupta ante un fallo intermedio.
  */
 export async function createSolicitud(colaboradorEmail, activoId, comentarios) {
     const client = await pool.connect();
