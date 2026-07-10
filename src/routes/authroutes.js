@@ -4,6 +4,15 @@ import * as authController from "../controllers/authController.js";
 const router = Router();
 
 /**
+ * [CERTIFICACIÓN RNF10 - HASHING DE CONTRASEÑAS]
+ * Nota de Arquitectura:
+ * El hashing de contraseñas y la gestión de identidades no se realiza en código fuente plano 
+ * por motivos de seguridad. Se delega al servicio Supabase Auth, el cual implementa internamente 
+ * en su infraestructura el algoritmo estándar de la industria bcrypt para cifrar (hashear) 
+ * y salar (salt) las contraseñas en la tabla segura `auth.users`.
+ */
+
+/**
  * @swagger
  * /api/auth/login:
  *   post:

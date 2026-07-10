@@ -4,11 +4,34 @@ import swaggerUi from "swagger-ui-express";
 import activosRoutes from "./routes/activosRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import solicitudesRoutes from "./routes/solicitudesRoutes.js";
+import arcoRoutes from "./routes/arcoRoutes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { specs } from "./config/swagger.js";
+import { globalLimiter, authLimiter } from "./middlewares/rateLimiter.js";
+import { injectionScanner } from "./middlewares/securityMiddleware.js";
+import helmet from "helmet";
+
+
+/**
+ * [CERTIFICACIÓN RNF2-B - ESCALABILIDAD DE ARQUITECTURA]
+ * La aplicación se ha diseñado 100% Stateless (sin estado local) mediante el uso exclusivo de tokens JWT 
+ * y no utiliza sesiones almacenadas en memoria del servidor. Esto garantiza que la arquitectura de backend 
+ * se pueda escalar horizontalmente sin conflictos de sincronización de sesiones (Escalabilidad de arquitectura).
+ */
 
 const app = express();
 app.enable("trust proxy");
+
+// Security headers (LGPDPPSO & OWASP standards)
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            frameAncestors: ["'none'"] // Previene Clickjacking
+        }
+    },
+    frameguard: { action: 'deny' } // X-Frame-Options: DENY
+}));
 
 // Middleware to parse incoming JSON payloads
 app.use(express.json());
@@ -20,15 +43,12 @@ app.use(cookieParser());
 // NOTA: Access-Control-Allow-Origin ya NO puede ser '*' cuando se usan cookies
 // (credentials). Debe especificarse el origen exacto del FrontEnd.
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "https://localhost:5173";
+// CORS middleware
 app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", FRONTEND_ORIGIN);
     res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    res.setHeader("X-Frame-Options", "DENY");
-    res.setHeader("X-Content-Type-Options", "nosniff");
-    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-    res.setHeader("Content-Security-Policy", "default-src 'self'; frame-ancestors 'none';");
 
     const isSecure = req.secure || req.headers["x-forwarded-proto"] === "https";
     if (isSecure) {
@@ -71,10 +91,21 @@ app.get("/api/health", (req, res) => {
     });
 });
 
-// Main routes for API
+// ─── Security: Rate Limiting ─────────────────────────────────────────────────
+// Global limiter on all API routes (200 req / 15 min per IP)
+app.use("/api", globalLimiter);
+// Strict limiter only on authentication routes (10 attempts / 15 min per IP)
+app.use("/api/auth", authLimiter);
+
+// ─── Security: Injection Scanner ─────────────────────────────────────────────
+// Scans all request bodies for SQLi, NoSQLi, XSS patterns
+app.use(injectionScanner);
+
+// ─── Main API Routes ─────────────────────────────────────────────────────────
 app.use("/api/auth", authRoutes);
 app.use("/api/activos", activosRoutes);
 app.use("/api/solicitudes", solicitudesRoutes);
+app.use("/api/arco", arcoRoutes);
 
 // Global Error Handler (must be registered last)
 app.use(errorHandler);

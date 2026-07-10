@@ -3,8 +3,7 @@ import { auditLog } from "../utils/logger.js";
 export function errorHandler(err, req, res, next) {
     const userId = req.user ? req.user.correo : 'ANONYMOUS';
     
-    // Log internal stack trace securely
-    console.error(`[ERROR] ${err.message}`, err.stack);
+    console.error("[ERROR]", err.message, "\n", err.stack);
     
     // Log to audit log
     auditLog(userId, "ERROR_OCCURRED", {
