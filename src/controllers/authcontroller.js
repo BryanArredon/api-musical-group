@@ -50,6 +50,9 @@ export async function login(req, res, next) {
         }
         const authorities = role === "admin" ? ["ROLE_ADMIN"] : ["ROLE_USER"];
 
+        // Determinar si es HTTPS para activar la bandera Secure en la cookie
+        const isSecure = req.secure || req.headers["x-forwarded-proto"] === "https";
+
         // Generar token JWT
         const token = jwt.sign(
             {
@@ -62,11 +65,29 @@ export async function login(req, res, next) {
             { expiresIn: "24h" }
         );
 
+        // ══════════════════════════════════════════════════════════════════════
+        // SEGURIDAD: Cookie HttpOnly — El token jamás toca el JavaScript
+        // del cliente. Esto elimina el riesgo de robo de sesión por XSS.
+        //   - httpOnly:  true  → No accesible desde document.cookie
+        //   - secure:    true  → Solo viaja por HTTPS (no por HTTP en claro)
+        //   - sameSite: 'none' → Necesario para peticiones cross-origin con
+        //                        credentials (FrontEnd en 5173 → API en 3000)
+        //   - maxAge: 86400000 → Expira en 24 horas (igual que el JWT)
+        // ══════════════════════════════════════════════════════════════════════
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: isSecure,
+            sameSite: "strict",
+            maxAge: 86400000 // 24 horas en milisegundos
+        });
+
         return res.status(200).json({
             success: true,
             message: "Inicio de sesión exitoso.",
             data: {
-                token,
+                // NOTA: El token ya NO se envía en el body (lo maneja la cookie).
+                // Solo se devuelven los datos del usuario para que el FrontEnd
+                // pueda mostrar el nombre, rol, etc. en la interfaz.
                 user: {
                     email: user.email,
                     nombre: user.nombre,
@@ -93,6 +114,60 @@ export async function register(req, res, next) {
             message: "El nombre, correo y contraseña son obligatorios."
         });
     }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // VALIDACIÓN DE SERVIDOR — Segunda línea de defensa.
+    // El FrontEnd puede ser bypasseado (eliminando atributos en DevTools
+    // o enviando peticiones directas con curl/Postman). El BackEnd SIEMPRE
+    // valida independientemente del cliente.
+    // ══════════════════════════════════════════════════════════════════════
+
+    // Validar formato de email con regex RFC 5322
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({
+            success: false,
+            error: "Bad Request",
+            message: "El formato del correo electrónico no es válido."
+        });
+    }
+
+    // Validar longitud máxima del nombre (50 caracteres)
+    if (nombre.length > 50) {
+        return res.status(400).json({
+            success: false,
+            error: "Bad Request",
+            message: "El nombre no puede superar los 50 caracteres."
+        });
+    }
+
+    // Validar longitud máxima del email (254 caracteres — RFC 5321)
+    if (email.length > 254) {
+        return res.status(400).json({
+            success: false,
+            error: "Bad Request",
+            message: "El correo electrónico no puede superar los 254 caracteres."
+        });
+    }
+
+    // Validar longitud mínima de contraseña (8 caracteres)
+    if (password.length < 8) {
+        return res.status(400).json({
+            success: false,
+            error: "Bad Request",
+            message: "La contraseña debe tener al menos 8 caracteres."
+        });
+    }
+
+    // Validar longitud máxima de contraseña (128 caracteres)
+    if (password.length > 128) {
+        return res.status(400).json({
+            success: false,
+            error: "Bad Request",
+            message: "La contraseña no puede superar los 128 caracteres."
+        });
+    }
+
 
     try {
         // Verificar si el usuario ya existe
@@ -129,4 +204,22 @@ export async function register(req, res, next) {
     } catch (error) {
         next(error);
     }
+}
+
+/**
+ * Cierra la sesión del usuario eliminando la cookie segura del navegador.
+ */
+export async function logout(req, res) {
+    // clearCookie destruye la cookie del cliente. Para que funcione, los
+    // atributos deben coincidir exactamente con los usados al crearla.
+    const isSecure = req.secure || req.headers["x-forwarded-proto"] === "https";
+    res.clearCookie("token", {
+        httpOnly: true,
+        secure: isSecure,
+        sameSite: "strict"
+    });
+    return res.status(200).json({
+        success: true,
+        message: "Sesión cerrada correctamente."
+    });
 }
