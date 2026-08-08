@@ -7,14 +7,17 @@
   "jest": {
     "reporters": [
       "default",
-      ["jest-html-reporter", {
-        "pageTitle": "Musical Group — Reporte de Pruebas",
-        "outputPath": "src/tests/reporte-evidencia.html",
-        "includeFailureMsg": true,
-        "includeConsoleLog": false,
-        "sort": "titleAsc",
-        "theme": "lightTheme"
-      }]
+      [
+        "jest-html-reporter",
+        {
+          "pageTitle": "Musical Group — Reporte de Pruebas",
+          "outputPath": "src/tests/reporte-evidencia.html",
+          "includeFailureMsg": true,
+          "includeConsoleLog": false,
+          "sort": "titleAsc",
+          "theme": "lightTheme"
+        }
+      ]
     ]
   },
   "scripts": {
