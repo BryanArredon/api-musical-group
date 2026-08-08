@@ -1,4 +1,5 @@
 import express from "express";
+import cookieParser from "cookie-parser";
 import swaggerUi from "swagger-ui-express";
 import activosRoutes from "./routes/activosRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
@@ -33,9 +34,18 @@ app.use(helmet({
 // Middleware to parse incoming JSON payloads
 app.use(express.json());
 
+// Cookie parser para leer las cookies HttpOnly enviadas por el navegador
+app.use(cookieParser());
+
+// Security headers and CORS middleware (LGPDPPSO & OWASP standards)
+// NOTA: Access-Control-Allow-Origin ya NO puede ser '*' cuando se usan cookies
+// (credentials). Debe especificarse el origen exacto del FrontEnd.
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "https://localhost:5173";
+
 // CORS middleware
 app.use((req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Origin", FRONTEND_ORIGIN);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
