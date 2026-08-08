@@ -1,0 +1,129 @@
+{
+  "info": {
+    "name": "API Musical Group - OWASP Tests (Demo en Vivo)",
+    "description": "Colección actualizada con las pruebas específicas solicitadas por el profesor.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. SQL Injection en Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"' OR 1=1 --\",\n  \"password\": \"' UNION SELECT NULL,NULL --\"\n}"
+        },
+        "url": {
+          "raw": "https://localhost:3000/api/auth/login",
+          "protocol": "https",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "description": "Prueba de Inyección SQL directamente en el endpoint de Login como lo pidió el profesor."
+      }
+    },
+    {
+      "name": "2. BOLA - Manipular ID ajeno",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{TOKEN_NORMAL}}"
+          }
+        ],
+        "url": {
+          "raw": "https://localhost:3000/api/solicitudes/12/aprobar",
+          "protocol": "https",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "solicitudes",
+            "12",
+            "aprobar"
+          ]
+        },
+        "description": "Prueba de BOLA: Un usuario normal intenta acceder/modificar el registro 12 que solo le compete a los administradores."
+      }
+    },
+    {
+      "name": "3. Fuga de Datos (Respuesta Limpia)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{TOKEN_NORMAL}}"
+          }
+        ],
+        "url": {
+          "raw": "https://localhost:3000/api/solicitudes/mis-solicitudes",
+          "protocol": "https",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "solicitudes",
+            "mis-solicitudes"
+          ]
+        },
+        "description": "Demuestra que la API no devuelve contraseñas hasheadas ni correos ocultos en el JSON."
+      }
+    },
+    {
+      "name": "4. Mass Assignment (Inyectar Rol)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{TOKEN_NORMAL}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"activoId\": 1,\n  \"comentarios\": \"Tratando de ser admin\",\n  \"rol\": \"admin\",\n  \"is_admin\": true\n}"
+        },
+        "url": {
+          "raw": "https://localhost:3000/api/solicitudes",
+          "protocol": "https",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "solicitudes"
+          ]
+        },
+        "description": "Intento de forzar la creación de un usuario con permisos o alterar datos bloqueados."
+      }
+    }
+  ]
+}
