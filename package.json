@@ -4,8 +4,22 @@
   "description": "",
   "main": "index.js",
   "type": "module",
+  "jest": {
+    "reporters": [
+      "default",
+      ["jest-html-reporter", {
+        "pageTitle": "Musical Group — Reporte de Pruebas",
+        "outputPath": "src/tests/reporte-evidencia.html",
+        "includeFailureMsg": true,
+        "includeConsoleLog": false,
+        "sort": "titleAsc",
+        "theme": "lightTheme"
+      }]
+    ]
+  },
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --passWithNoTests",
+    "test:reporte": "node --experimental-vm-modules node_modules/jest/bin/jest.js --passWithNoTests --verbose",
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "lint": "eslint .",
@@ -45,6 +59,7 @@
     "globals": "^17.6.0",
     "husky": "^9.1.7",
     "jest": "^30.4.2",
+    "jest-html-reporter": "^4.4.0",
     "lint-staged": "^17.0.7",
     "prettier": "^3.8.3",
     "supertest": "^7.2.2"

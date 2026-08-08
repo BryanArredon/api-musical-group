@@ -11,16 +11,14 @@ import { globalLimiter, authLimiter } from "./middlewares/rateLimiter.js";
 import { injectionScanner } from "./middlewares/securityMiddleware.js";
 import helmet from "helmet";
 
-
 /**
  * [CERTIFICACIÓN RNF2-B - ESCALABILIDAD DE ARQUITECTURA]
  * La aplicación se ha diseñado 100% Stateless (sin estado local) mediante el uso exclusivo de tokens JWT 
  * y no utiliza sesiones almacenadas en memoria del servidor. Esto garantiza que la arquitectura de backend 
  * se pueda escalar horizontalmente sin conflictos de sincronización de sesiones (Escalabilidad de arquitectura).
  */
-
 const app = express();
-app.enable("trust proxy");
+app.set("trust proxy", 1); // Confiar solo en el primer proxy (seguro para rate limiting)
 
 // Security headers (LGPDPPSO & OWASP standards)
 app.use(helmet({
@@ -43,6 +41,7 @@ app.use(cookieParser());
 // NOTA: Access-Control-Allow-Origin ya NO puede ser '*' cuando se usan cookies
 // (credentials). Debe especificarse el origen exacto del FrontEnd.
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "https://localhost:5173";
+
 // CORS middleware
 app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", FRONTEND_ORIGIN);

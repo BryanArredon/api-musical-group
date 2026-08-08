@@ -1,0 +1,74 @@
+-- ============================================================
+-- SEED PARTE 3: aceptaciones_privacidad + solicitudes_v2 + solicitud_activos_v2
+-- ============================================================
+SET search_path TO musical_group, public;
+
+-- ── 4. aceptaciones_privacidad (18 usuarios aceptaron v2.0) ──
+INSERT INTO musical_group.aceptaciones_privacidad (id, usuario_id, aviso_id, aceptado_en, ip, user_agent) VALUES
+('e0000001-0000-0000-0000-000000000001','b0000001-0000-0000-0000-000000000001','a0000001-0000-0000-0000-000000000001','2025-01-15 09:00:00+00','192.168.1.10','Mozilla/5.0 Chrome/120'),
+('e0000001-0000-0000-0000-000000000002','b0000001-0000-0000-0000-000000000002','a0000001-0000-0000-0000-000000000001','2025-01-15 09:05:00+00','192.168.1.11','Mozilla/5.0 Chrome/120'),
+('e0000001-0000-0000-0000-000000000003','b0000001-0000-0000-0000-000000000003','a0000001-0000-0000-0000-000000000001','2025-01-15 09:10:00+00','192.168.1.12','Mozilla/5.0 Firefox/121'),
+('e0000001-0000-0000-0000-000000000004','b0000001-0000-0000-0000-000000000004','a0000001-0000-0000-0000-000000000002','2025-02-01 10:00:00+00','192.168.1.20','Mozilla/5.0 Chrome/121'),
+('e0000001-0000-0000-0000-000000000005','b0000001-0000-0000-0000-000000000005','a0000001-0000-0000-0000-000000000002','2025-02-01 10:05:00+00','192.168.1.21','Mozilla/5.0 Safari/17'),
+('e0000001-0000-0000-0000-000000000006','b0000001-0000-0000-0000-000000000006','a0000001-0000-0000-0000-000000000002','2025-02-01 10:10:00+00','192.168.1.22','Mozilla/5.0 Chrome/121'),
+('e0000001-0000-0000-0000-000000000007','b0000001-0000-0000-0000-000000000007','a0000001-0000-0000-0000-000000000002','2025-02-02 11:00:00+00','192.168.1.23','Mozilla/5.0 Firefox/121'),
+('e0000001-0000-0000-0000-000000000008','b0000001-0000-0000-0000-000000000008','a0000001-0000-0000-0000-000000000002','2025-02-02 11:05:00+00','192.168.1.24','Mozilla/5.0 Chrome/121'),
+('e0000001-0000-0000-0000-000000000009','b0000001-0000-0000-0000-000000000009','a0000001-0000-0000-0000-000000000002','2025-02-02 11:10:00+00','192.168.1.25','Mozilla/5.0 Edge/120'),
+('e0000001-0000-0000-0000-000000000010','b0000001-0000-0000-0000-000000000010','a0000001-0000-0000-0000-000000000002','2025-02-03 12:00:00+00','192.168.1.26','Mozilla/5.0 Chrome/121'),
+('e0000001-0000-0000-0000-000000000011','b0000001-0000-0000-0000-000000000011','a0000001-0000-0000-0000-000000000002','2025-02-03 12:05:00+00','192.168.1.27','Mozilla/5.0 Firefox/121'),
+('e0000001-0000-0000-0000-000000000012','b0000001-0000-0000-0000-000000000012','a0000001-0000-0000-0000-000000000002','2025-02-03 12:10:00+00','192.168.1.28','Mozilla/5.0 Chrome/121'),
+('e0000001-0000-0000-0000-000000000013','b0000001-0000-0000-0000-000000000013','a0000001-0000-0000-0000-000000000002','2025-02-04 13:00:00+00','192.168.1.29','Mozilla/5.0 Safari/17'),
+('e0000001-0000-0000-0000-000000000014','b0000001-0000-0000-0000-000000000014','a0000001-0000-0000-0000-000000000002','2025-02-04 13:05:00+00','192.168.1.30','Mozilla/5.0 Chrome/121'),
+('e0000001-0000-0000-0000-000000000015','b0000001-0000-0000-0000-000000000015','a0000001-0000-0000-0000-000000000002','2025-02-04 13:10:00+00','192.168.1.31','Mozilla/5.0 Firefox/122'),
+('e0000001-0000-0000-0000-000000000016','b0000001-0000-0000-0000-000000000018','a0000001-0000-0000-0000-000000000002','2025-02-05 14:00:00+00','192.168.1.32','Mozilla/5.0 Chrome/122'),
+('e0000001-0000-0000-0000-000000000017','b0000001-0000-0000-0000-000000000019','a0000001-0000-0000-0000-000000000002','2025-02-05 14:05:00+00','192.168.1.33','Mozilla/5.0 Edge/121'),
+('e0000001-0000-0000-0000-000000000018','b0000001-0000-0000-0000-000000000020','a0000001-0000-0000-0000-000000000002','2025-02-05 14:10:00+00','192.168.1.34','Mozilla/5.0 Chrome/122');
+
+-- ── 5. solicitudes_v2 (30 solicitudes con distintos estados) ─
+INSERT INTO musical_group.solicitudes_v2
+    (id, solicitante_id, nombre_evento, ubicacion_evento, fecha_inicio, fecha_fin, estado,
+     notas, notas_admin, aprobado_por, aprobado_en, rechazado_por, rechazado_en, motivo_rechazo) VALUES
+-- APROBADAS (10)
+('f0000001-0000-0000-0000-000000000001','b0000001-0000-0000-0000-000000000004','Concierto de Primavera 2025','Auditorio Principal UTNG','2025-03-20 18:00:00+00','2025-03-20 22:00:00+00','aprobada','Requiero equipo de cuerdas completo y amplificación',NULL,'b0000001-0000-0000-0000-000000000001','2025-03-10 10:00:00+00',NULL,NULL,NULL),
+('f0000001-0000-0000-0000-000000000002','b0000001-0000-0000-0000-000000000005','Recital de Vientos','Sala de Cámara','2025-03-25 17:00:00+00','2025-03-25 20:00:00+00','devuelta','Necesito saxofones y trompeta','Todo en orden',b0000001-0000-0000-0000-000000000002','2025-03-15 09:00:00+00',NULL,NULL,NULL),
+('f0000001-0000-0000-0000-000000000003','b0000001-0000-0000-0000-000000000006','Festival de Percusión','Plaza Principal','2025-04-05 16:00:00+00','2025-04-05 21:00:00+00','devuelta','Solicito batería, congas y marimba','Aprobado con reservas de horario','b0000001-0000-0000-0000-000000000001','2025-03-25 11:00:00+00',NULL,NULL,NULL),
+('f0000001-0000-0000-0000-000000000004','b0000001-0000-0000-0000-000000000007','Presentación Graduación','Auditorio Norte','2025-04-15 19:00:00+00','2025-04-15 23:00:00+00','aprobada','Guitar, bajo y teclado para ceremonia',NULL,'b0000001-0000-0000-0000-000000000002','2025-04-05 08:30:00+00',NULL,NULL,NULL),
+('f0000001-0000-0000-0000-000000000005','b0000001-0000-0000-0000-000000000008','Ensayo General Orquesta','Salón de Ensayo Principal','2025-04-20 14:00:00+00','2025-04-20 18:00:00+00','devuelta','Necesito piano de cola y violines','Confirmado',b0000001-0000-0000-0000-000000000001','2025-04-10 10:00:00+00',NULL,NULL,NULL),
+('f0000001-0000-0000-0000-000000000006','b0000001-0000-0000-0000-000000000009','Jam Session Jazz','Cafetería UTNG','2025-05-02 19:30:00+00','2025-05-02 22:30:00+00','aprobada','Batería electrónica, bajo y saxofón tenor',NULL,'b0000001-0000-0000-0000-000000000002','2025-04-22 09:00:00+00',NULL,NULL,NULL),
+('f0000001-0000-0000-0000-000000000007','b0000001-0000-0000-0000-000000000010','Concierto Benéfico DIF','Teatro Municipal','2025-05-10 18:00:00+00','2025-05-10 21:00:00+00','devuelta','PA completo + guitarras','Evento externo aprobado por rectoría','b0000001-0000-0000-0000-000000000001','2025-04-30 08:00:00+00',NULL,NULL,NULL),
+('f0000001-0000-0000-0000-000000000008','b0000001-0000-0000-0000-000000000011','Clase Magistral Cuerda','Aula 301','2025-05-15 10:00:00+00','2025-05-15 13:00:00+00','aprobada','Violonchelo y violín para demostración',NULL,'b0000001-0000-0000-0000-000000000003','2025-05-08 14:00:00+00',NULL,NULL,NULL),
+('f0000001-0000-0000-0000-000000000009','b0000001-0000-0000-0000-000000000012','Grabación de Demo','Estudio de Grabación','2025-05-22 09:00:00+00','2025-05-22 17:00:00+00','aprobada','Interfaz de audio, micrófonos y auriculares',NULL,'b0000001-0000-0000-0000-000000000002','2025-05-14 16:00:00+00',NULL,NULL,NULL),
+('f0000001-0000-0000-0000-000000000010','b0000001-0000-0000-0000-000000000013','Audición Nuevos Integrantes','Salón de Ensayo Secundario','2025-06-01 10:00:00+00','2025-06-01 14:00:00+00','aprobada','Teclado MIDI y amplificador',NULL,'b0000001-0000-0000-0000-000000000001','2025-05-24 10:00:00+00',NULL,NULL,NULL),
+-- EN USO (5)
+('f0000001-0000-0000-0000-000000000011','b0000001-0000-0000-0000-000000000014','Festival Internacional Música','Centro Cultural','2026-08-08 15:00:00+00','2026-08-10 22:00:00+00','en_uso','Sistema PA completo y amplificación','Aprobado por dirección','b0000001-0000-0000-0000-000000000001','2026-07-28 09:00:00+00',NULL,NULL,NULL),
+('f0000001-0000-0000-0000-000000000012','b0000001-0000-0000-0000-000000000015','Noche de Guitarra','Jardín Central','2026-08-07 20:00:00+00','2026-08-07 23:00:00+00','en_uso','Guitarras eléctricas y amplificadores','Todo listo','b0000001-0000-0000-0000-000000000002','2026-07-30 10:00:00+00',NULL,NULL,NULL),
+('f0000001-0000-0000-0000-000000000013','b0000001-0000-0000-0000-000000000004','Ensayo Orquesta Sinfónica','Auditorio Principal UTNG','2026-08-06 14:00:00+00','2026-08-06 19:00:00+00','en_uso','Instrumentos de viento y percusión orquestal','Confirmado','b0000001-0000-0000-0000-000000000003','2026-07-27 08:30:00+00',NULL,NULL,NULL),
+('f0000001-0000-0000-0000-000000000014','b0000001-0000-0000-0000-000000000006','Concierto Fin de Semestre','Auditorio Norte','2026-08-07 18:00:00+00','2026-08-07 21:30:00+00','en_uso','Percusión completa y mezcladora','Aprobado','b0000001-0000-0000-0000-000000000001','2026-07-29 09:30:00+00',NULL,NULL,NULL),
+('f0000001-0000-0000-0000-000000000015','b0000001-0000-0000-0000-000000000009','Sesión de Grabación Avanzada','Estudio de Grabación','2026-08-07 08:00:00+00','2026-08-07 16:00:00+00','en_uso','Interfaz, micrófonos condenser y auriculares',NULL,'b0000001-0000-0000-0000-000000000002','2026-08-01 11:00:00+00',NULL,NULL,NULL);
+
+-- PENDIENTES (8)
+INSERT INTO musical_group.solicitudes_v2
+    (id, solicitante_id, nombre_evento, ubicacion_evento, fecha_inicio, fecha_fin, estado, notas) VALUES
+('f0000001-0000-0000-0000-000000000016','b0000001-0000-0000-0000-000000000005','Recital Trimestral Vientos','Sala de Cámara','2026-09-05 17:00:00+00','2026-09-05 20:00:00+00','pendiente','Clarinete, flauta y saxofón alto'),
+('f0000001-0000-0000-0000-000000000017','b0000001-0000-0000-0000-000000000007','Presentación Cultural','Plaza Cívica','2026-09-12 18:00:00+00','2026-09-12 21:00:00+00','pendiente','Guitarra acústica y micrófono condensador'),
+('f0000001-0000-0000-0000-000000000018','b0000001-0000-0000-0000-000000000010','Workshop Producción Musical','Laboratorio de Cómputo','2026-09-18 09:00:00+00','2026-09-18 13:00:00+00','pendiente','Interfaz de audio y auriculares para cada estación'),
+('f0000001-0000-0000-0000-000000000019','b0000001-0000-0000-0000-000000000011','Concierto de Jazz','Bar Cultural','2026-09-20 21:00:00+00','2026-09-21 00:00:00+00','pendiente','Bajo eléctrico, sintetizador y batería electrónica'),
+('f0000001-0000-0000-0000-000000000020','b0000001-0000-0000-0000-000000000012','Audición Beca','Sala de Audiciones','2026-09-25 10:00:00+00','2026-09-25 14:00:00+00','pendiente','Piano digital y micrófono condensador'),
+('f0000001-0000-0000-0000-000000000021','b0000001-0000-0000-0000-000000000013','Taller de Composición','Aula Teórica 205','2026-10-01 09:00:00+00','2026-10-01 12:00:00+00','pendiente','Teclado MIDI y laptop con interfaz'),
+('f0000001-0000-0000-0000-000000000022','b0000001-0000-0000-0000-000000000018','Ensayo Cuarteto de Cuerdas','Salón de Ensayo Secundario','2026-10-03 15:00:00+00','2026-10-03 18:00:00+00','pendiente','2 violines, viola y cello'),
+('f0000001-0000-0000-0000-000000000023','b0000001-0000-0000-0000-000000000019','Concierto Navideño Adelanto','Explanada','2026-10-10 17:00:00+00','2026-10-10 20:00:00+00','pendiente','PA completo, guitarras y percusión');
+
+-- RECHAZADAS (4) y CANCELADAS (3)
+INSERT INTO musical_group.solicitudes_v2
+    (id, solicitante_id, nombre_evento, ubicacion_evento, fecha_inicio, fecha_fin, estado,
+     notas, motivo_rechazo, rechazado_por, rechazado_en) VALUES
+('f0000001-0000-0000-0000-000000000024','b0000001-0000-0000-0000-000000000014','Evento Externo No Autorizado','Foro Privado','2025-06-10 20:00:00+00','2025-06-11 02:00:00+00','rechazada','Quiero llevar equipos fuera del campus','El evento no está avalado por la institución','b0000001-0000-0000-0000-000000000001','2025-06-01 09:00:00+00'),
+('f0000001-0000-0000-0000-000000000025','b0000001-0000-0000-0000-000000000015','Fiesta Privada','Domicilio Particular','2025-07-05 21:00:00+00','2025-07-06 03:00:00+00','rechazada','Préstamo para uso personal','Los activos son para uso exclusivo institucional','b0000001-0000-0000-0000-000000000002','2025-06-25 10:00:00+00'),
+('f0000001-0000-0000-0000-000000000026','b0000001-0000-0000-0000-000000000016','Ensayo sin Reserva Previa','Sin asignar','2025-08-01 10:00:00+00','2025-08-01 13:00:00+00','rechazada','Urgente','Solicitud fuera de plazo mínimo de 72 horas','b0000001-0000-0000-0000-000000000003','2025-07-31 18:00:00+00'),
+('f0000001-0000-0000-0000-000000000027','b0000001-0000-0000-0000-000000000017','Grabación Personal','Estudio externo','2025-09-10 09:00:00+00','2025-09-10 18:00:00+00','rechazada','Proyecto independiente','No aplica préstamo para proyectos no académicos','b0000001-0000-0000-0000-000000000001','2025-09-01 08:00:00+00');
+
+INSERT INTO musical_group.solicitudes_v2
+    (id, solicitante_id, nombre_evento, ubicacion_evento, fecha_inicio, fecha_fin, estado, notas) VALUES
+('f0000001-0000-0000-0000-000000000028','b0000001-0000-0000-0000-000000000004','Concierto Cancelado por Lluvia','Jardín Central','2025-10-15 18:00:00+00','2025-10-15 21:00:00+00','cancelada','Evento cancelado por condiciones climáticas'),
+('f0000001-0000-0000-0000-000000000029','b0000001-0000-0000-0000-000000000008','Taller Cancelado','Aula 202','2025-11-05 09:00:00+00','2025-11-05 12:00:00+00','cancelada','Instructor no pudo asistir'),
+('f0000001-0000-0000-0000-000000000030','b0000001-0000-0000-0000-000000000010','Presentación Aplazada','Teatro Municipal','2025-12-01 19:00:00+00','2025-12-01 22:00:00+00','cancelada','Reprogramado para enero 2026');
