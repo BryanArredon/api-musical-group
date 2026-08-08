@@ -1,18 +1,17 @@
 version: '3.8'
 
 services:
-  db:
-    image: postgres:15-alpine
-    container_name: db_activos
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin_activos
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-123456}
-      POSTGRES_DB: ${DB_NAME:-mi_base_datos}
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@musicalgroup.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin1234}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "5050:80"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgadmin_data:/var/lib/pgadmin
 
 volumes:
-  postgres_data:
+  pgadmin_data:
