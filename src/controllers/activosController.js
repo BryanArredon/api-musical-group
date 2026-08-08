@@ -64,9 +64,17 @@ export async function createAsset(req, res, next) {
 
 export async function getAllAssets(req, res, next) {
     const userId = req.user?.sub || req.user?.correo || "UNKNOWN_USER";
+    const userRole = req.user?.rol;
+    
     try {
-        const assets = await activosService.getAllAssets();
-        auditLog(userId, "GET_ALL_ASSETS", { count: assets.length });
+        let assets = await activosService.getAllAssets();
+        
+        // [BOLA] Non-admins can only see available assets to prevent data fishing
+        if (userRole !== 'Administrador') {
+            assets = assets.filter(a => (a.estado || a.activo_estado) === 'Disponible');
+        }
+
+        auditLog(userId, "GET_ALL_ASSETS", { count: assets.length, role: userRole });
         return res.status(200).json({
             success: true,
             data: sanitizeList(assets, sanitizeAsset) // [Mass Exposure] Only expose allowed fields

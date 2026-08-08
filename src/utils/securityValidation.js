@@ -135,16 +135,16 @@ function validateTextField(value, fieldName, maxLength = 100) {
  * @returns {{ isValid: boolean, value?: number, message?: string }}
  */
 function validateId(value) {
-    const parsed = parseInt(value, 10);
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-    if (isNaN(parsed) || parsed <= 0 || String(parsed) !== String(value)) {
+    if (typeof value !== 'string' || !uuidRegex.test(value)) {
         return {
             isValid: false,
-            message: "El identificador proporcionado no es válido. Debe ser un número entero positivo."
+            message: "El identificador proporcionado no es válido. Debe ser un UUID."
         };
     }
 
-    return { isValid: true, value: parsed };
+    return { isValid: true, value: value.toLowerCase() };
 }
 
 /**

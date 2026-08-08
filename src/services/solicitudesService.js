@@ -1,32 +1,51 @@
 import { pool } from "../config/database.js";
 
 /**
- * Registra una nueva solicitud de préstamo.
- * 
- * [CERTIFICACIÓN RNF3-B - CONFIRMACIÓN Y RESPALDO DE DATOS]
- * Aquí se cumple con la confirmación atómica de datos (ACID) mediante el uso de "BEGIN", "COMMIT" y "ROLLBACK".
- * Se garantiza que el inventario no se asigne de manera corrupta ante un fallo intermedio.
+ * Registra una nueva solicitud de préstamo V2.
+ * Soporta múltiples activos y control de fechas/eventos.
  */
-export async function createSolicitud(colaboradorEmail, activoId, comentarios) {
+export async function createSolicitud(email, activosIds, comentarios, fechaInicio, fechaFin, nombreEvento, ubicacion) {
     const client = await pool.connect();
     try {
         await client.query("BEGIN");
 
-        // Verify if active asset exists
-        const assetRes = await client.query("SELECT id, estado FROM activos WHERE id = $1", [activoId]);
-        if (assetRes.rows.length === 0) {
-            throw new Error("El activo solicitado no existe.");
+        // 1. Obtener el UUID del usuario a partir de su correo
+        const userRes = await client.query("SELECT id FROM perfiles WHERE email = $1", [email]);
+        if (userRes.rows.length === 0) {
+            throw new Error("Usuario no encontrado.");
+        }
+        const usuarioId = userRes.rows[0].id;
+
+        // 2. Verificar que TODOS los activos existen y están disponibles
+        for (const activoId of activosIds) {
+            const assetRes = await client.query("SELECT id, estado FROM activos_v2 WHERE id = $1 FOR UPDATE", [activoId]);
+            if (assetRes.rows.length === 0) {
+                throw new Error(`El activo solicitado (${activoId}) no existe.`);
+            }
+            if (assetRes.rows[0].estado !== 'disponible' && assetRes.rows[0].estado !== 'Disponible') {
+                throw new Error(`El activo (${activoId}) no está disponible actualmente.`);
+            }
         }
 
+        // 3. Crear la Solicitud
         const queryText = `
-            INSERT INTO solicitudes (colaborador_email, activo_id, comentarios, estado)
-            VALUES ($1, $2, $3, 'Pendiente')
-            RETURNING id, colaborador_email, activo_id, estado, comentarios, created_at, updated_at
+            INSERT INTO solicitudes_v2 (usuario_id, fecha_inicio, fecha_fin, nombre_evento, ubicacion, comentarios, estado)
+            VALUES ($1, $2, $3, $4, $5, $6, 'pendiente')
+            RETURNING id, estado, created_at
         `;
-        const res = await client.query(queryText, [colaboradorEmail, activoId, comentarios]);
+        const res = await client.query(queryText, [usuarioId, fechaInicio, fechaFin, nombreEvento, ubicacion, comentarios]);
+        const solicitud = res.rows[0];
+
+        // 4. Crear la relación en la tabla pivote y actualizar el estado temporal
+        for (const activoId of activosIds) {
+            await client.query(
+                "INSERT INTO solicitud_activos_v2 (solicitud_id, activo_id) VALUES ($1, $2)",
+                [solicitud.id, activoId]
+            );
+        }
 
         await client.query("COMMIT");
-        return res.rows[0];
+        return solicitud;
     } catch (err) {
         await client.query("ROLLBACK");
         throw err;
@@ -36,15 +55,14 @@ export async function createSolicitud(colaboradorEmail, activoId, comentarios) {
 }
 
 /**
- * Returns all requests with 'Pendiente' status.
+ * Returns all requests with 'pendiente' status.
  */
 export async function getPendingSolicitudes() {
     const queryText = `
-        SELECT s.id, s.colaborador_email, s.activo_id, s.estado, s.comentarios, s.created_at,
-               a.categoria, a.estado as activo_estado
-        FROM solicitudes s
-        JOIN activos a ON s.activo_id = a.id
-        WHERE s.estado = 'Pendiente'
+        SELECT s.id, p.email as colaborador_email, s.estado, s.comentarios, s.nombre_evento, s.fecha_inicio, s.fecha_fin, s.created_at
+        FROM solicitudes_v2 s
+        JOIN perfiles p ON s.usuario_id = p.id
+        WHERE s.estado = 'pendiente' OR s.estado = 'Pendiente'
         ORDER BY s.created_at ASC
     `;
     const res = await pool.query(queryText);
@@ -56,10 +74,9 @@ export async function getPendingSolicitudes() {
  */
 export async function getAllSolicitudes() {
     const queryText = `
-        SELECT s.id, s.colaborador_email, s.activo_id, s.estado, s.comentarios, s.created_at,
-               a.categoria, a.estado as activo_estado
-        FROM solicitudes s
-        JOIN activos a ON s.activo_id = a.id
+        SELECT s.id, p.email as colaborador_email, s.estado, s.comentarios, s.nombre_evento, s.fecha_inicio, s.fecha_fin, s.created_at
+        FROM solicitudes_v2 s
+        JOIN perfiles p ON s.usuario_id = p.id
         ORDER BY s.created_at DESC
     `;
     const res = await pool.query(queryText);
@@ -71,11 +88,10 @@ export async function getAllSolicitudes() {
  */
 export async function getUserSolicitudes(email) {
     const queryText = `
-        SELECT s.id, s.colaborador_email, s.activo_id, s.estado, s.comentarios, s.created_at,
-               a.categoria, a.estado as activo_estado
-        FROM solicitudes s
-        JOIN activos a ON s.activo_id = a.id
-        WHERE s.colaborador_email = $1
+        SELECT s.id, p.email as colaborador_email, s.estado, s.comentarios, s.nombre_evento, s.fecha_inicio, s.fecha_fin, s.created_at
+        FROM solicitudes_v2 s
+        JOIN perfiles p ON s.usuario_id = p.id
+        WHERE p.email = $1
         ORDER BY s.created_at DESC
     `;
     const res = await pool.query(queryText, [email]);
@@ -84,20 +100,14 @@ export async function getUserSolicitudes(email) {
 
 /**
  * Atomically approves or rejects a request.
- * Automatically handles transaction rollback in case of validation or database failure.
  */
 export async function procesarSolicitud(solicitudId, adminEmail, nuevoEstado) {
-    if (!["Aprobada", "Rechazada"].includes(nuevoEstado)) {
-        throw new Error("Estado de procesamiento inválido. Debe ser 'Aprobada' o 'Rechazada'.");
-    }
-
     const client = await pool.connect();
     try {
         await client.query("BEGIN");
 
-        // 1. Check if the request exists and get details
         const solRes = await client.query(
-            "SELECT id, estado, activo_id FROM solicitudes WHERE id = $1 FOR UPDATE",
+            "SELECT id, estado FROM solicitudes_v2 WHERE id = $1 FOR UPDATE",
             [solicitudId]
         );
         if (solRes.rows.length === 0) {
@@ -107,56 +117,28 @@ export async function procesarSolicitud(solicitudId, adminEmail, nuevoEstado) {
         }
 
         const solicitud = solRes.rows[0];
-
-        // 2. Verify if the request was already processed
-        if (solicitud.estado !== "Pendiente") {
+        if (solicitud.estado !== "pendiente" && solicitud.estado !== "Pendiente") {
             const error = new Error("Esta solicitud ya ha sido procesada previamente.");
             error.status = 400;
             throw error;
         }
 
-        const activoId = solicitud.activo_id;
-
-        if (nuevoEstado === "Aprobada") {
-            // 3. Verify asset availability
-            const assetRes = await client.query(
-                "SELECT id, estado FROM activos WHERE id = $1 FOR UPDATE",
-                [activoId]
-            );
-            if (assetRes.rows.length === 0) {
-                const error = new Error("El activo asociado a la solicitud ya no existe.");
-                error.status = 404;
-                throw error;
-            }
-
-            const activo = assetRes.rows[0];
-            if (activo.estado === "Asignado") {
-                const error = new Error("El activo solicitado ya se encuentra asignado a otra solicitud aprobada.");
-                error.status = 400;
-                throw error;
-            }
-
-            // 4. Update request status to 'Aprobada'
+        if (nuevoEstado === "Aprobada" || nuevoEstado === "aprobada") {
+            // Update request
             await client.query(
-                `UPDATE solicitudes 
-                 SET estado = 'Aprobada', procesado_por = $1, fecha_procesamiento = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-                 WHERE id = $2`,
-                [adminEmail, solicitudId]
+                "UPDATE solicitudes_v2 SET estado = 'aprobada', updated_at = CURRENT_TIMESTAMP WHERE id = $1",
+                [solicitudId]
             );
 
-            // 5. Update asset status to 'Asignado'
+            // Update all related assets
             await client.query(
-                "UPDATE activos SET estado = 'Asignado', updated_at = CURRENT_TIMESTAMP WHERE id = $1",
-                [activoId]
+                "UPDATE activos_v2 SET estado = 'asignado', updated_at = CURRENT_TIMESTAMP WHERE id IN (SELECT activo_id FROM solicitud_activos_v2 WHERE solicitud_id = $1)",
+                [solicitudId]
             );
-
-        } else if (nuevoEstado === "Rechazada") {
-            // 4. Update request status to 'Rechazada' (Asset status remains unchanged)
+        } else if (nuevoEstado === "Rechazada" || nuevoEstado === "rechazada") {
             await client.query(
-                `UPDATE solicitudes 
-                 SET estado = 'Rechazada', procesado_por = $1, fecha_procesamiento = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-                 WHERE id = $2`,
-                [adminEmail, solicitudId]
+                "UPDATE solicitudes_v2 SET estado = 'rechazada', updated_at = CURRENT_TIMESTAMP WHERE id = $1",
+                [solicitudId]
             );
         }
 
@@ -171,20 +153,18 @@ export async function procesarSolicitud(solicitudId, adminEmail, nuevoEstado) {
 }
 
 /**
- * Registra la devolución de un activo de forma atómica.
+ * Registra la devolución de los activos asociados a una solicitud en la V2.
  */
-export async function registrarDevolucion(solicitudId, adminEmail, condicionesFisicas) {
-    if (!condicionesFisicas || condicionesFisicas.trim() === "") {
-        throw new Error("Debe proporcionar las condiciones físicas en las que se devuelve el activo.");
-    }
-
+export async function registrarDevolucion(solicitudId, adminEmail, estadoFisico, urlsFotos, detallesDano) {
     const client = await pool.connect();
     try {
         await client.query("BEGIN");
 
-        // 1. Obtener la solicitud
+        const adminRes = await client.query("SELECT id FROM perfiles WHERE email = $1", [adminEmail]);
+        const adminId = adminRes.rows.length > 0 ? adminRes.rows[0].id : null;
+
         const solRes = await client.query(
-            "SELECT id, estado, activo_id, colaborador_email FROM solicitudes WHERE id = $1 FOR UPDATE",
+            "SELECT id, estado FROM solicitudes_v2 WHERE id = $1 FOR UPDATE",
             [solicitudId]
         );
         if (solRes.rows.length === 0) {
@@ -194,35 +174,30 @@ export async function registrarDevolucion(solicitudId, adminEmail, condicionesFi
         }
 
         const solicitud = solRes.rows[0];
-
-        // 2. Verificar que la solicitud esté 'Aprobada'
-        if (solicitud.estado !== "Aprobada") {
+        if (solicitud.estado !== "aprobada" && solicitud.estado !== "Aprobada") {
             const error = new Error(`Solo se pueden devolver activos de solicitudes aprobadas. Estado actual: ${solicitud.estado}`);
             error.status = 400;
             throw error;
         }
 
-        // 3. Actualizar la solicitud a 'Devuelta'
         await client.query(
-            "UPDATE solicitudes SET estado = 'Devuelta', updated_at = CURRENT_TIMESTAMP WHERE id = $1",
+            "UPDATE solicitudes_v2 SET estado = 'devuelta', updated_at = CURRENT_TIMESTAMP WHERE id = $1",
             [solicitudId]
         );
 
-        // 4. Registrar en el historial de devoluciones
         await client.query(
-            `INSERT INTO historial_devoluciones (solicitud_id, activo_id, devuelto_por, recibido_por, condiciones_fisicas)
-             VALUES ($1, $2, $3, $4, $5)`,
-            [solicitudId, solicitud.activo_id, solicitud.colaborador_email, adminEmail, condicionesFisicas]
+            "INSERT INTO devoluciones_v2 (solicitud_id, estado_fisico, urls_fotos, detalles_dano, evaluado_por) VALUES ($1, $2::estado_fisico, $3, $4, $5)",
+            [solicitudId, estadoFisico, urlsFotos || [], detallesDano, adminId]
         );
 
-        // 5. Liberar el activo (volver a 'Disponible')
+        // Liberar todos los activos
         await client.query(
-            "UPDATE activos SET estado = 'Disponible', updated_at = CURRENT_TIMESTAMP WHERE id = $1",
-            [solicitud.activo_id]
+            "UPDATE activos_v2 SET estado = 'disponible', updated_at = CURRENT_TIMESTAMP WHERE id IN (SELECT activo_id FROM solicitud_activos_v2 WHERE solicitud_id = $1)",
+            [solicitudId]
         );
 
         await client.query("COMMIT");
-        return { success: true, message: "Devolución registrada exitosamente." };
+        return { success: true, message: "Devolución registrada exitosamente en V2." };
     } catch (err) {
         await client.query("ROLLBACK");
         throw err;
@@ -231,16 +206,12 @@ export async function registrarDevolucion(solicitudId, adminEmail, condicionesFi
     }
 }
 
-/**
- * Retorna el historial completo de devoluciones.
- */
 export async function getHistorialDevoluciones() {
     const queryText = `
-        SELECT h.id, h.solicitud_id, h.activo_id, h.devuelto_por, h.recibido_por, h.condiciones_fisicas, h.fecha_devolucion,
-               a.nombre as activo_nombre, a.categoria
-        FROM historial_devoluciones h
-        JOIN activos a ON h.activo_id = a.id
-        ORDER BY h.fecha_devolucion DESC
+        SELECT d.id, d.solicitud_id, d.estado_fisico, d.detalles_dano, d.created_at, p.email as evaluador
+        FROM devoluciones_v2 d
+        LEFT JOIN perfiles p ON d.evaluado_por = p.id
+        ORDER BY d.created_at DESC
     `;
     const res = await pool.query(queryText);
     return res.rows;

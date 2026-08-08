@@ -19,8 +19,8 @@ export async function login(req, res, next) {
     }
 
     try {
-        // Consultar el usuario desde la base de datos
-        const result = await pool.query("SELECT id, nombre, email, password FROM usuarios WHERE email = $1", [email]);
+        // Consultar el usuario desde la base de datos (V2)
+        const result = await pool.query("SELECT id, nombre, email, password, rol FROM perfiles WHERE email = $1", [email]);
         
         if (result.rows.length === 0) {
             return res.status(401).json({
@@ -43,11 +43,8 @@ export async function login(req, res, next) {
             });
         }
 
-        // Determinar rol (admin si contiene 'admin' para simular permisos, sino user)
-        let role = "user";
-        if (user.email.includes("admin")) {
-            role = "admin";
-        }
+        // Usar el rol de la base de datos V2
+        const role = user.rol || "user";
         const authorities = role === "admin" ? ["ROLE_ADMIN"] : ["ROLE_USER"];
 
         // Determinar si es HTTPS para activar la bandera Secure en la cookie
@@ -170,8 +167,8 @@ export async function register(req, res, next) {
 
 
     try {
-        // Verificar si el usuario ya existe
-        const checkUser = await pool.query("SELECT id FROM usuarios WHERE email = $1", [email]);
+        // Verificar si el usuario ya existe (V2)
+        const checkUser = await pool.query("SELECT id FROM perfiles WHERE email = $1", [email]);
         if (checkUser.rows.length > 0) {
             return res.status(409).json({
                 success: false,
@@ -184,10 +181,13 @@ export async function register(req, res, next) {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Guardar el nuevo usuario en la BD
+        // Asignar rol admin si es correo admin (por compatibilidad en pruebas)
+        const role = email.includes("admin") ? "admin" : "user";
+
+        // Guardar el nuevo perfil en la BD (V2)
         const result = await pool.query(
-            "INSERT INTO usuarios (nombre, email, password) VALUES ($1, $2, $3) RETURNING id, nombre, email",
-            [nombre, email, hashedPassword]
+            "INSERT INTO perfiles (nombre, email, password, rol) VALUES ($1, $2, $3, $4::rol_usuario) RETURNING id, nombre, email, rol",
+            [nombre, email, hashedPassword, role]
         );
 
         const newUser = result.rows[0];
