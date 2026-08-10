@@ -124,6 +124,18 @@ export async function procesarSolicitud(solicitudId, adminEmail, nuevoEstado) {
         }
 
         if (nuevoEstado === "Aprobada" || nuevoEstado === "aprobada") {
+            const activosRes = await client.query(
+                "SELECT id, estado FROM activos_v2 WHERE id IN (SELECT activo_id FROM solicitud_activos_v2 WHERE solicitud_id = $1)",
+                [solicitudId]
+            );
+            for (const activo of activosRes.rows) {
+                if (activo.estado !== "disponible" && activo.estado !== "Disponible") {
+                    const error = new Error(`El activo ${activo.id} ya se encuentra asignado a otra persona.`);
+                    error.status = 400;
+                    throw error;
+                }
+            }
+
             // Update request
             await client.query(
                 "UPDATE solicitudes_v2 SET estado = 'aprobada', updated_at = CURRENT_TIMESTAMP WHERE id = $1",

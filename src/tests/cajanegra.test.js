@@ -49,7 +49,8 @@ beforeEach(() => {
             if (["BEGIN", "COMMIT", "ROLLBACK"].some((k) => sql.includes(k))) {
                 return Promise.resolve();
             }
-            if (sql.includes("INSERT INTO activos")) {
+            if (sql.includes("SELECT id FROM categorias")) return Promise.resolve({ rows: [{ id: 1 }] });
+        if (sql.includes("INSERT INTO activos_v2") || sql.includes("INSERT INTO activos")) {
                 return Promise.resolve({
                     rows: [{ id: 1, categoria: params[2], estado: params[3], created_at: new Date(), updated_at: new Date() }]
                 });
@@ -303,27 +304,27 @@ describe("CN-07 | Caja Negra — Endpoint inexistente", () => {
 // Partición inválida: crear solicitud sin indicar el activo
 // ============================================================
 describe("CN-08 | Caja Negra — Validación de campo activoId en POST /api/solicitudes", () => {
-    it("Sin activoId → 400 Bad Request", async () => {
+    it("Sin activosIds → 400 Bad Request", async () => {
         const token = makeToken(["ROLE_USER"], "colab@test.com");
-
         const res = await request(app)
             .post("/api/solicitudes")
             .set("Authorization", `Bearer ${token}`)
-            .send({ comentarios: "Sin activo" }); // falta activoId
+            .send({ nombreEvento: "Concierto", fechaInicio: "2026-08-10", fechaFin: "2026-08-11" });
 
         expect(res.statusCode).toBe(400);
         expect(res.body.success).toBe(false);
-        expect(res.body.message).toMatch(/activoId/i);
+        expect(res.body.message).toMatch(/activosIds/i);
     });
 
     it("Colaborador autenticado SÍ puede crear solicitud con activoId válido → 201", async () => {
         // Re-mock para INSERT en solicitudes
         mockClient.query.mockImplementation((sql, params = []) => {
             if (["BEGIN", "COMMIT", "ROLLBACK"].some((k) => sql.includes(k))) return Promise.resolve();
-            if (sql.includes("SELECT id, estado FROM activos")) return Promise.resolve({ rows: [{ id: 1, estado: "Disponible" }] });
-            if (sql.includes("INSERT INTO solicitudes")) {
+            if (sql.includes("perfiles")) return Promise.resolve({ rows: [{ id: 1 }] });
+            if (sql.includes("activos")) return Promise.resolve({ rows: [{ id: 1, estado: "Disponible" }] });
+            if (sql.includes("INSERT")) {
                 return Promise.resolve({
-                    rows: [{ id: 10, colaborador_email: params[0], activo_id: params[1], estado: "Pendiente", comentarios: params[2] }]
+                    rows: [{ id: "123e4567-e89b-12d3-a456-426614174000", colaborador_email: "colab@test.com", estado: "Pendiente" }]
                 });
             }
             return Promise.resolve({ rows: [] });
@@ -334,7 +335,7 @@ describe("CN-08 | Caja Negra — Validación de campo activoId en POST /api/soli
         const res = await request(app)
             .post("/api/solicitudes")
             .set("Authorization", `Bearer ${token}`)
-            .send({ activoId: 1, comentarios: "Guitarra para concierto" });
+            .send({ activosIds: [1], nombreEvento: "Concierto", fechaInicio: "2026-08-10", fechaFin: "2026-08-11" });
 
         expect(res.statusCode).toBe(201);
         expect(res.body.success).toBe(true);

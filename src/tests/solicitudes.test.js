@@ -31,6 +31,10 @@ describe("Pruebas de Aprobación de Solicitudes (RF2-B)", () => {
                     return Promise.resolve();
                 }
 
+                if (queryText.includes("perfiles")) {
+                    return Promise.resolve({ rows: [{ id: 1 }] });
+                }
+
                 // Mock check if asset exists
                 if (queryText.includes("SELECT id, estado FROM activos")) {
                     if (String(params[0]) === "999") {
@@ -43,20 +47,20 @@ describe("Pruebas de Aprobación de Solicitudes (RF2-B)", () => {
                 }
 
                 // Mock check request
-                if (queryText.includes("SELECT id, estado, activo_id FROM solicitudes")) {
-                    if (String(params[0]) === "999") {
+                if (queryText.includes("SELECT id, estado FROM solicitudes_v2") || queryText.includes("SELECT id, estado, activo_id FROM solicitudes")) {
+                    if (String(params[0]) === "999" || String(params[0]).includes("999")) {
                         return Promise.resolve({ rows: [] }); // Non-existent request
                     }
-                    if (String(params[0]) === "2") {
-                        return Promise.resolve({ rows: [{ id: 2, estado: "Aprobada", activo_id: 1 }] }); // Already processed
+                    if (String(params[0]) === "2" || String(params[0]) === "222e4567-e89b-12d3-a456-426614174000") {
+                        return Promise.resolve({ rows: [{ id: "222e4567-e89b-12d3-a456-426614174000", estado: "Aprobada", activo_id: 1 }] }); // Already processed
                     }
-                    return Promise.resolve({ rows: [{ id: 1, estado: "Pendiente", activo_id: 1 }] });
+                    return Promise.resolve({ rows: [{ id: "123e4567-e89b-12d3-a456-426614174000", estado: "Pendiente", activo_id: 1 }] });
                 }
 
                 // Mock insert request
-                if (queryText.includes("INSERT INTO solicitudes")) {
+                if (queryText.includes("INSERT INTO solicitudes_v2") || queryText.includes("INSERT")) {
                     return Promise.resolve({
-                        rows: [{ id: 1, colaborador_email: params[0], activo_id: params[1], estado: "Pendiente", comentarios: params[2] }]
+                        rows: [{ id: "123e4567-e89b-12d3-a456-426614174000", colaborador_email: "colab@musical.com", estado: "Pendiente" }]
                     });
                 }
 
@@ -86,8 +90,10 @@ describe("Pruebas de Aprobación de Solicitudes (RF2-B)", () => {
                 .post("/api/solicitudes")
                 .set("Authorization", `Bearer ${token}`)
                 .send({
-                    activoId: 1,
-                    comentarios: "Necesito esta guitarra para el concierto"
+                    activosIds: [1],
+                    nombreEvento: "Ensayo general",
+                    fechaInicio: "2026-08-10",
+                    fechaFin: "2026-08-11"
                 });
 
             expect(res.statusCode).toBe(201);
@@ -108,12 +114,12 @@ describe("Pruebas de Aprobación de Solicitudes (RF2-B)", () => {
             const token = generateToken(["ROLE_USER"]);
             
             const approveRes = await request(app)
-                .post("/api/solicitudes/1/aprobar")
+                .post("/api/solicitudes/123e4567-e89b-12d3-a456-426614174000/aprobar")
                 .set("Authorization", `Bearer ${token}`);
             expect(approveRes.statusCode).toBe(403);
 
             const rejectRes = await request(app)
-                .post("/api/solicitudes/1/rechazar")
+                .post("/api/solicitudes/123e4567-e89b-12d3-a456-426614174000/rechazar")
                 .set("Authorization", `Bearer ${token}`);
             expect(rejectRes.statusCode).toBe(403);
         });
@@ -123,7 +129,7 @@ describe("Pruebas de Aprobación de Solicitudes (RF2-B)", () => {
         it("Debe permitir al administrador aprobar una solicitud pendiente y cambiar estado de activo", async () => {
             const token = generateToken(["ROLE_ADMIN"]);
             const res = await request(app)
-                .post("/api/solicitudes/1/aprobar")
+                .post("/api/solicitudes/123e4567-e89b-12d3-a456-426614174000/aprobar")
                 .set("Authorization", `Bearer ${token}`);
 
             expect(res.statusCode).toBe(200);
@@ -140,7 +146,7 @@ describe("Pruebas de Aprobación de Solicitudes (RF2-B)", () => {
         it("Debe permitir al administrador rechazar una solicitud pendiente sin alterar el activo", async () => {
             const token = generateToken(["ROLE_ADMIN"]);
             const res = await request(app)
-                .post("/api/solicitudes/1/rechazar")
+                .post("/api/solicitudes/123e4567-e89b-12d3-a456-426614174000/rechazar")
                 .set("Authorization", `Bearer ${token}`);
 
             expect(res.statusCode).toBe(200);
@@ -156,7 +162,7 @@ describe("Pruebas de Aprobación de Solicitudes (RF2-B)", () => {
         it("Debe impedir procesar una solicitud que ya fue procesada anteriormente", async () => {
             const token = generateToken(["ROLE_ADMIN"]);
             const res = await request(app)
-                .post("/api/solicitudes/2/aprobar") // Solicitud 2 is mocked as already 'Aprobada'
+                .post("/api/solicitudes/222e4567-e89b-12d3-a456-426614174000/aprobar") // Solicitud 2 is mocked as already 'Aprobada'
                 .set("Authorization", `Bearer ${token}`);
 
             expect(res.statusCode).toBe(400);
@@ -172,17 +178,20 @@ describe("Pruebas de Aprobación de Solicitudes (RF2-B)", () => {
                 if (queryText.includes("BEGIN") || queryText.includes("COMMIT") || queryText.includes("ROLLBACK")) {
                     return Promise.resolve();
                 }
-                if (queryText.includes("SELECT id, estado, activo_id FROM solicitudes")) {
-                    return Promise.resolve({ rows: [{ id: 1, estado: "Pendiente", activo_id: 2 }] });
+                if (queryText.includes("solicitudes_v2")) {
+                    return Promise.resolve({ rows: [{ id: "123e4567-e89b-12d3-a456-426614174000", estado: "Pendiente" }] });
                 }
-                if (queryText.includes("SELECT id, estado FROM activos")) {
+                if (queryText.includes("solicitud_activos_v2")) {
+                    return Promise.resolve({ rows: [{ activo_id: 2 }] });
+                }
+                if (queryText.includes("activos_v2")) {
                     return Promise.resolve({ rows: [{ id: 2, estado: "Asignado" }] });
                 }
                 return Promise.resolve({ rows: [] });
             });
 
             const res = await request(app)
-                .post("/api/solicitudes/1/aprobar")
+                .post("/api/solicitudes/123e4567-e89b-12d3-a456-426614174000/aprobar")
                 .set("Authorization", `Bearer ${token}`);
 
             expect(res.statusCode).toBe(400);

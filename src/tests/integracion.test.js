@@ -56,8 +56,10 @@ afterAll(() => jest.restoreAllMocks());
 /** Mock para flujo de creación exitosa de activo */
 function mockActivoCreacion() {
     mockClient.query.mockImplementation((sql, params = []) => {
-        if (["BEGIN", "COMMIT"].some((k) => sql.includes(k))) return Promise.resolve();
-        if (sql.includes("INSERT INTO activos")) {
+        if (sql.includes("SELECT id FROM categorias")) {
+            return Promise.resolve({ rows: [{ id: 1 }] });
+        }
+        if (sql.includes("INSERT INTO activos_v2") || sql.includes("INSERT INTO activos")) {
             return Promise.resolve({
                 rows: [{ id: 42, categoria: params[2], estado: params[3], created_at: new Date(), updated_at: new Date() }]
             });
@@ -70,14 +72,14 @@ function mockActivoCreacion() {
 function mockAprobacionExitosa() {
     mockClient.query.mockImplementation((sql, params = []) => {
         if (["BEGIN", "COMMIT"].some((k) => sql.includes(k))) return Promise.resolve();
-        if (sql.includes("SELECT id, estado, activo_id FROM solicitudes")) {
-            return Promise.resolve({ rows: [{ id: 1, estado: "Pendiente", activo_id: 5 }] });
+        if (sql.includes("solicitudes_v2")) {
+            return Promise.resolve({ rows: [{ id: "123e4567-e89b-12d3-a456-426614174000", estado: "Pendiente" }] });
         }
-        if (sql.includes("SELECT id, estado FROM activos")) {
-            return Promise.resolve({ rows: [{ id: 5, estado: "Disponible" }] });
+        if (sql.includes("perfiles")) {
+            return Promise.resolve({ rows: [{ id: 1 }] });
         }
-        if (sql.includes("UPDATE solicitudes")) return Promise.resolve({ rows: [] });
-        if (sql.includes("UPDATE activos")) return Promise.resolve({ rows: [] });
+        if (sql.includes("UPDATE solicitudes_v2")) return Promise.resolve({ rows: [] });
+        if (sql.includes("UPDATE activos_v2")) return Promise.resolve({ rows: [] });
         return Promise.resolve({ rows: [] });
     });
 }
@@ -128,7 +130,7 @@ describe("INT-02 | Integración — Aprobación de solicitud actualiza solicitud
         const token = makeToken(["ROLE_ADMIN"]);
 
         const res = await request(app)
-            .post("/api/solicitudes/1/aprobar")
+            .post("/api/solicitudes/123e4567-e89b-12d3-a456-426614174000/aprobar")
             .set("Authorization", `Bearer ${token}`);
 
         expect(res.statusCode).toBe(200);
@@ -138,8 +140,8 @@ describe("INT-02 | Integración — Aprobación de solicitud actualiza solicitud
         const calls = mockClient.query.mock.calls.map((c) => c[0]);
 
         // Se deben haber ejecutado UPDATE en ambas tablas dentro de la misma transacción
-        const updatedSolicitudes = calls.some((s) => s.includes("UPDATE solicitudes"));
-        const updatedActivos     = calls.some((s) => s.includes("UPDATE activos"));
+        const updatedSolicitudes = calls.some((s) => s.includes("UPDATE solicitudes_v2"));
+        const updatedActivos     = calls.some((s) => s.includes("UPDATE activos_v2"));
         const committed          = calls.some((s) => s.includes("COMMIT"));
 
         expect(updatedSolicitudes).toBe(true);
@@ -191,17 +193,17 @@ describe("INT-04 | Integración — Rechazo de solicitud NO modifica el activo",
     it("POST /api/solicitudes/:id/rechazar → solo actualiza tabla solicitudes", async () => {
         mockClient.query.mockImplementation((sql) => {
             if (["BEGIN", "COMMIT"].some((k) => sql.includes(k))) return Promise.resolve();
-            if (sql.includes("SELECT id, estado, activo_id FROM solicitudes")) {
-                return Promise.resolve({ rows: [{ id: 1, estado: "Pendiente", activo_id: 5 }] });
+            if (sql.includes("solicitudes_v2")) {
+                return Promise.resolve({ rows: [{ id: "123e4567-e89b-12d3-a456-426614174000", estado: "Pendiente" }] });
             }
-            if (sql.includes("UPDATE solicitudes")) return Promise.resolve({ rows: [] });
+            if (sql.includes("UPDATE solicitudes_v2")) return Promise.resolve({ rows: [] });
             return Promise.resolve({ rows: [] });
         });
 
         const token = makeToken(["ROLE_ADMIN"]);
 
         const res = await request(app)
-            .post("/api/solicitudes/1/rechazar")
+            .post("/api/solicitudes/123e4567-e89b-12d3-a456-426614174000/rechazar")
             .set("Authorization", `Bearer ${token}`);
 
         expect(res.statusCode).toBe(200);
@@ -211,9 +213,9 @@ describe("INT-04 | Integración — Rechazo de solicitud NO modifica el activo",
         const calls = mockClient.query.mock.calls.map((c) => c[0]);
 
         // Solicitud actualizada ✓
-        expect(calls.some((s) => s.includes("UPDATE solicitudes"))).toBe(true);
+        expect(calls.some((s) => s.includes("UPDATE solicitudes_v2"))).toBe(true);
         // Activo NO debe modificarse al rechazar ✗
-        expect(calls.some((s) => s.includes("UPDATE activos"))).toBe(false);
+        expect(calls.some((s) => s.includes("UPDATE activos_v2"))).toBe(false);
         expect(calls.some((s) => s.includes("COMMIT"))).toBe(true);
     });
 });
@@ -227,9 +229,9 @@ describe("INT-05 | Integración — Regla de negocio: no procesar solicitud ya p
     it("Intentar aprobar solicitud con estado 'Aprobada' → 400 + ROLLBACK", async () => {
         mockClient.query.mockImplementation((sql) => {
             if (["BEGIN", "ROLLBACK"].some((k) => sql.includes(k))) return Promise.resolve();
-            if (sql.includes("SELECT id, estado, activo_id FROM solicitudes")) {
+            if (sql.includes("solicitudes_v2")) {
                 // Simulamos solicitud ya aprobada previamente
-                return Promise.resolve({ rows: [{ id: 2, estado: "Aprobada", activo_id: 5 }] });
+                return Promise.resolve({ rows: [{ id: "123e4567-e89b-12d3-a456-426614174000", estado: "Aprobada" }] });
             }
             return Promise.resolve({ rows: [] });
         });
@@ -237,7 +239,7 @@ describe("INT-05 | Integración — Regla de negocio: no procesar solicitud ya p
         const token = makeToken(["ROLE_ADMIN"]);
 
         const res = await request(app)
-            .post("/api/solicitudes/2/aprobar")
+            .post("/api/solicitudes/123e4567-e89b-12d3-a456-426614174000/aprobar")
             .set("Authorization", `Bearer ${token}`);
 
         expect(res.statusCode).toBe(400);
@@ -260,21 +262,21 @@ describe("INT-06 | Integración — Devolución de activo actualiza 3 tablas en 
     it("POST /api/solicitudes/:id/devolver con condición física → 200 y 3 operaciones en DB", async () => {
         mockClient.query.mockImplementation((sql) => {
             if (["BEGIN", "COMMIT"].some((k) => sql.includes(k))) return Promise.resolve();
-            if (sql.includes("SELECT id, estado, activo_id, colaborador_email FROM solicitudes")) {
-                return Promise.resolve({ rows: [{ id: 3, estado: "Aprobada", activo_id: 7, colaborador_email: "colab@test.com" }] });
+            if (sql.includes("solicitudes_v2")) {
+                return Promise.resolve({ rows: [{ id: "123e4567-e89b-12d3-a456-426614174000", estado: "Aprobada" }] });
             }
-            if (sql.includes("UPDATE solicitudes")) return Promise.resolve({ rows: [] });
+            if (sql.includes("UPDATE solicitudes_v2")) return Promise.resolve({ rows: [] });
             if (sql.includes("INSERT INTO historial_devoluciones")) return Promise.resolve({ rows: [] });
-            if (sql.includes("UPDATE activos")) return Promise.resolve({ rows: [] });
+            if (sql.includes("UPDATE activos_v2")) return Promise.resolve({ rows: [] });
             return Promise.resolve({ rows: [] });
         });
 
         const token = makeToken(["ROLE_ADMIN"]);
 
         const res = await request(app)
-            .post("/api/solicitudes/3/devolver")
+            .post("/api/solicitudes/123e4567-e89b-12d3-a456-426614174000/devolver")
             .set("Authorization", `Bearer ${token}`)
-            .send({ condicionesFisicas: "Guitarra devuelta en perfecto estado, sin daños visibles." });
+            .send({ estadoFisico: "bueno" });
 
         expect(res.statusCode).toBe(200);
         expect(res.body.success).toBe(true);
@@ -283,23 +285,23 @@ describe("INT-06 | Integración — Devolución de activo actualiza 3 tablas en 
         const calls = mockClient.query.mock.calls.map((c) => c[0]);
 
         // Las 3 integraciones con DB deben haberse ejecutado
-        expect(calls.some((s) => s.includes("UPDATE solicitudes"))).toBe(true);
-        expect(calls.some((s) => s.includes("INSERT INTO historial_devoluciones"))).toBe(true);
-        expect(calls.some((s) => s.includes("UPDATE activos"))).toBe(true);
+        expect(calls.some((s) => s.includes("UPDATE solicitudes_v2"))).toBe(true);
+        expect(calls.some((s) => s.includes("INSERT INTO devoluciones_v2"))).toBe(true);
+        expect(calls.some((s) => s.includes("UPDATE activos_v2"))).toBe(true);
         expect(calls.some((s) => s.includes("COMMIT"))).toBe(true);
     });
 
-    it("Devolución sin condicionesFisicas → 400 y transacción no iniciada", async () => {
+    it("Devolución sin estadoFisico → 400 y transacción no iniciada", async () => {
         const token = makeToken(["ROLE_ADMIN"]);
 
         const res = await request(app)
-            .post("/api/solicitudes/3/devolver")
+            .post("/api/solicitudes/123e4567-e89b-12d3-a456-426614174000/devolver")
             .set("Authorization", `Bearer ${token}`)
-            .send({}); // sin campo condicionesFisicas
+            .send({}); // sin campo estadoFisico
 
         expect(res.statusCode).toBe(400);
         expect(res.body.success).toBe(false);
-        expect(res.body.message).toMatch(/condicionesFisicas/i);
+        expect(res.body.message).toMatch(/estadoFisico/i);
 
         // No se debe haber conectado a la DB si falla validación previa
         expect(mockClient.query).not.toHaveBeenCalled();

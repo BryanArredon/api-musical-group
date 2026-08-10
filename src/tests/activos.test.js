@@ -31,6 +31,9 @@ describe("Pruebas de Integración y Seguridad - Activos", () => {
                 if (queryText.includes("BEGIN") || queryText.includes("COMMIT") || queryText.includes("ROLLBACK")) {
                     return Promise.resolve();
                 }
+                if (queryText.includes("SELECT id FROM categorias")) {
+                    return Promise.resolve({ rows: [{ id: 1 }] });
+                }
                 if (queryText.includes("INSERT")) {
                     return Promise.resolve({
                         rows: [{ id: 1, categoria: "Instrumentos", estado: "Nuevo", created_at: new Date(), updated_at: new Date() }]
@@ -62,13 +65,13 @@ describe("Pruebas de Integración y Seguridad - Activos", () => {
             expect(res.body.error).toBe("Unauthorized");
         });
 
-        it("Debe denegar acceso (403) si el usuario no tiene rol de Administrador", async () => {
+        it("Debe permitir acceso (200) si el usuario no tiene rol de Administrador (filtro aplicado)", async () => {
             const token = generateToken(["ROLE_USER"]);
             const res = await request(app)
                 .get("/api/activos")
                 .set("Authorization", `Bearer ${token}`);
-            expect(res.statusCode).toBe(403);
-            expect(res.body.error).toBe("Forbidden");
+            expect(res.statusCode).toBe(200);
+            expect(res.body.success).toBe(true);
         });
 
         it("Debe permitir acceso (200) si el usuario es Administrador", async () => {
